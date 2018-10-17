@@ -42,6 +42,8 @@ git commit -m "Name of commit" - commit files to git
 
 git push -u origin master - upload changes to git
 
+git commit --amend --no-edit - add changes to existing commit
+
 ## git (BlueCrystal)
 
 git pull - pull changes
