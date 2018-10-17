@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+//git change test
 
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
@@ -11,8 +12,6 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image);
 void init_image(const int nx, const int ny, double *  image, double *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, double *image);
 double wtime(void);
-
-//hello git change here
 
 int main(int argc, char *argv[]) {
 
