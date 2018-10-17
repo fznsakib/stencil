@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   // stenciling to temporary, then back to image. can reduce calls by half?
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, image, tmp_image);
-    //stencil(nx, ny, tmp_image, image);
+    stencil(nx, ny, tmp_image, image);
   }
 
   double toc = wtime();
@@ -78,11 +78,11 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
       // variable for coordinate
       int coord = j + (i * ny);
 
-      image[coord]                  = tmp_image[coord]        * centreWeighting;
-      if (i > 0)      image[coord] += tmp_image[j  +(i-1)*ny] * neighbourWeighting;
-      if (i < nx - 1) image[coord] += tmp_image[j  +(i+1)*ny] * neighbourWeighting;
-      if (j > 0)      image[coord] += tmp_image[j - 1 + i*ny] * neighbourWeighting;
-      if (j < ny - 1) image[coord] += tmp_image[j + 1 + i*ny] * neighbourWeighting;
+      tmp_image[coord]                  = image[coord]        * centreWeighting
+      if (i > 0)      tmp_image[coord] += image[j  +(i-1)*ny] * neighbourWeighting;
+      if (i < nx - 1) tmp_image[coord] += image[j  +(i+1)*ny] * neighbourWeighting;
+      if (j > 0)      tmp_image[coord] += image[j - 1 + i*ny] * neighbourWeighting;
+      if (j < ny - 1) tmp_image[coord] += image[j + 1 + i*ny] * neighbourWeighting;
     }
   }
 
