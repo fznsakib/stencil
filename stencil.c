@@ -28,17 +28,22 @@ int main(int argc, char *argv[]) {
   double *image = malloc(sizeof(double)*nx*ny);
   double *tmp_image = malloc(sizeof(double)*nx*ny);
 
+  // New constant
+  int coord = j + (i * ny);
+
   // Set the input image
   init_image(nx, ny, image, tmp_image);
 
   // Call the stencil kernel
   double tic = wtime();
+
+  // stenciling to temporary, then back to image. can reduce calls by half?
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, image, tmp_image);
     stencil(nx, ny, tmp_image, image);
   }
-  double toc = wtime();
 
+  double toc = wtime();
 
   // Output
   printf("------------------------------------\n");
@@ -49,17 +54,25 @@ int main(int argc, char *argv[]) {
   free(image);
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
 void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
+  // lots of calculations can be variablised
+  float centreWeighting    = 0.6; // 3.0/5.0
+  float neighbourWeighting = 0.1; // 0.5/5.0
+
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
-      tmp_image[j+i*ny] = image[j+i*ny] * 3.0/5.0;
-      if (i > 0)    tmp_image[j+i*ny] += image[j  +(i-1)*ny] * 0.5/5.0;
-      if (i < nx-1) tmp_image[j+i*ny] += image[j  +(i+1)*ny] * 0.5/5.0;
-      if (j > 0)    tmp_image[j+i*ny] += image[j-1+i*ny] * 0.5/5.0;
-      if (j < ny-1) tmp_image[j+i*ny] += image[j+1+i*ny] * 0.5/5.0;
+      tmp_image[j+(i * ny)] = image[j+i*ny] * centreWeighting;
+      if (i > 0)      tmp_image[j+i*ny] += image[j  +(i-1)*ny] * neighbourWeighting;
+      if (i < nx - 1) tmp_image[j+i*ny] += image[j  +(i+1)*ny] * neighbourWeighting;
+      if (j > 0)      tmp_image[j+i*ny] += image[j - 1 + i*ny] * neighbourWeighting;
+      if (j < ny - 1) tmp_image[j+i*ny] += image[j + 1 + i*ny] * neighbourWeighting;
     }
   }
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 // Create the input image
 void init_image(const int nx, const int ny, double *  image, double *  tmp_image) {

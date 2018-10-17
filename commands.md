@@ -44,7 +44,7 @@ git push -u origin master - upload changes to git
 
 ## git (BlueCrystal)
 
-git pull origin master
+git pull - pull changes
 
 ## gprof (Profiling)
 
