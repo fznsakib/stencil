@@ -28,9 +28,6 @@ int main(int argc, char *argv[]) {
   double *image = malloc(sizeof(double)*nx*ny);
   double *tmp_image = malloc(sizeof(double)*nx*ny);
 
-  // New constant
-  int coord = j + (i * ny);
-
   // Set the input image
   init_image(nx, ny, image, tmp_image);
 
