@@ -4,7 +4,7 @@
 
 ssh bcp3 - enter Blue Crystal
 
-scp -r Stencil bcp3 - transfer Stencil directory into Blue Crystal
+scp -r stencil bcp3 - transfer Stencil directory into Blue Crystal
 
 module list - currently loaded modules
 
@@ -13,8 +13,6 @@ module av - available modules to load
 module load 'moduleName' - load module
 
 module rm 'moduleName' - unload module
-
-
 
 
 ## Stencil commands
@@ -35,3 +33,11 @@ python check.py --ref-stencil-file stencil_1024_1024_100.pgm --stencil-file sten
 | 1024 | 1024 | 100    | `stencil_1024_1024_100.pgm` |
 | 4096 | 4096 | 100    | `stencil_4096_4096_100.pgm` |
 | 8000 | 8000 | 100    | `stencil_8000_8000_100.pgm` |
+
+## git
+
+git add --all - if any new files are created, add them to commit
+
+git commit -m "Name of commit" - commit files to git
+
+git push -u origin master - upload changes to git
