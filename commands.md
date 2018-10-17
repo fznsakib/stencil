@@ -34,10 +34,14 @@ python check.py --ref-stencil-file stencil_1024_1024_100.pgm --stencil-file sten
 | 4096 | 4096 | 100    | `stencil_4096_4096_100.pgm` |
 | 8000 | 8000 | 100    | `stencil_8000_8000_100.pgm` |
 
-## git
+## git (local)
 
 git add --all - if any new files are created, add them to commit
 
 git commit -m "Name of commit" - commit files to git
 
 git push -u origin master - upload changes to git
+
+## git (BlueCrystal)
+
+git pull origin master

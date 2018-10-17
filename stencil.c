@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-//git change test
-
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
 
