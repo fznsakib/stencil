@@ -58,6 +58,9 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   float centreWeighting    = 0.6; // 3.0/5.0
   float neighbourWeighting = 0.1; // 0.5/5.0
 
+  int xBound = nx - 1;
+  int yBound = ny - 1;
+
   // first stencil (image to tmp_image)
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
@@ -66,9 +69,9 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
 
       tmp_image[coord]                  = image[coord]        * centreWeighting;
       if (i > 0)      tmp_image[coord] += image[j + (i-1)*ny] * neighbourWeighting;
-      if (i < nx - 1) tmp_image[coord] += image[j + (i+1)*ny] * neighbourWeighting;
+      if (i < xBound) tmp_image[coord] += image[j + (i+1)*ny] * neighbourWeighting;
       if (j > 0)      tmp_image[coord] += image[j - 1 + i*ny] * neighbourWeighting;
-      if (j < ny - 1) tmp_image[coord] += image[j + 1 + i*ny] * neighbourWeighting;
+      if (j < yBound) tmp_image[coord] += image[j + 1 + i*ny] * neighbourWeighting;
     }
   }
 
