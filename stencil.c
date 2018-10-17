@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
   // stenciling to temporary, then back to image. can reduce calls by half?
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, image, tmp_image);
-    stencil(nx, ny, tmp_image, image);
+    //stencil(nx, ny, tmp_image, image);
   }
 
   double toc = wtime();
@@ -54,21 +54,38 @@ int main(int argc, char *argv[]) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
-  // lots of calculations can be variablised
+  // variables for stencil weightings
   float centreWeighting    = 0.6; // 3.0/5.0
   float neighbourWeighting = 0.1; // 0.5/5.0
 
+  // first stencil (image to tmp_image)
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
+      // variable for coordinate
       int coord = j + (i * ny);
 
-      tmp_image[coord]                  = image[coord] * centreWeighting;
+      tmp_image[coord]                  = image[coord]        * centreWeighting;
       if (i > 0)      tmp_image[coord] += image[j  +(i-1)*ny] * neighbourWeighting;
       if (i < nx - 1) tmp_image[coord] += image[j  +(i+1)*ny] * neighbourWeighting;
       if (j > 0)      tmp_image[coord] += image[j - 1 + i*ny] * neighbourWeighting;
       if (j < ny - 1) tmp_image[coord] += image[j + 1 + i*ny] * neighbourWeighting;
     }
   }
+
+  // second stencil (tmp_image to image)
+  for (int j = 0; j < ny; ++j) {
+    for (int i = 0; i < nx; ++i) {
+      // variable for coordinate
+      int coord = j + (i * ny);
+
+      image[coord]                  = tmp_image[coord]        * centreWeighting;
+      if (i > 0)      image[coord] += tmp_image[j  +(i-1)*ny] * neighbourWeighting;
+      if (i < nx - 1) image[coord] += tmp_image[j  +(i+1)*ny] * neighbourWeighting;
+      if (j > 0)      image[coord] += tmp_image[j - 1 + i*ny] * neighbourWeighting;
+      if (j < ny - 1) image[coord] += tmp_image[j + 1 + i*ny] * neighbourWeighting;
+    }
+  }
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
