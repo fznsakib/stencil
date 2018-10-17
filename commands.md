@@ -45,3 +45,9 @@ git push -u origin master - upload changes to git
 ## git (BlueCrystal)
 
 git pull origin master
+
+## gprof (Profiling)
+
+-pg - in Makefile to compile analysis file
+
+gprof stencil - open profile data

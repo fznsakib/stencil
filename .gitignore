@@ -4,3 +4,5 @@ stencil
 stencil_1024_1024_100.pgm
 stencil_4096_4096_100.pgm
 stencil_8000_8000_100.pgm
+stencil.pgm
+gmon.out
