@@ -65,10 +65,10 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
       int coord = i + (j * ny);
 
       tmp_image[coord]                  = image[coord]          * centreWeighting;
-      if (i > 0)      tmp_image[coord] += image[i + (j-1)*ny]   * neighbourWeighting;
-      if (i < nx - 1) tmp_image[coord] += image[i + (j+1)*ny]   * neighbourWeighting;
-      if (j > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-      if (j < ny - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+      if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+      if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+      if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
+      if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
     }
   }
 
