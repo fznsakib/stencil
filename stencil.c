@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   // variables for stencil weightings
   register float centreWeighting    = 0.6; // 3.0/5.0
-  register float neighbourWeighting = 0.1; // 0.5/5.0
+  register int neighbourWeighting = 10; // 0.5/5.0
 
   // first stencil (image to tmp_image)
   for (int j = 0; j < ny; ++j) {
@@ -65,10 +65,10 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
       int coord = i + (j * ny);
 
       tmp_image[coord]                  = image[coord]          * centreWeighting;
-      if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-      if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-      if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-      if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
+      if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] / neighbourWeighting;
+      if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] / neighbourWeighting;
+      if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] / neighbourWeighting;
+      if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] / neighbourWeighting;
     }
   }
 
