@@ -11,6 +11,9 @@ void init_image(const int nx, const int ny, double *  image, double *  tmp_image
 void output_image(const char * file_name, const int nx, const int ny, double *image);
 double wtime(void);
 
+typedef struct(
+
+)
 int main(int argc, char *argv[]) {
 
   // Check usage
@@ -34,7 +37,6 @@ int main(int argc, char *argv[]) {
   // Call the stencil kernel
   double tic = wtime();
 
-  // stenciling to temporary, then back to image. can reduce calls by half?
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, image, tmp_image);
     stencil(nx, ny, tmp_image, image);
@@ -58,16 +60,17 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
-  for (register int j = 0; j < ny; ++j) {
-    for (register int i = 0; i < nx; ++i) {
+  // Increment j by certain number
+  for (register int j = 1; j < ny - 1; ++j) {
+    for (register int i = 1; i < nx - 1; ++i) {
       // variable for coordinate
       register int coord = i + (j * ny);
 
-      tmp_image[coord]                  = image[coord]          * centreWeighting;
-      if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-      if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-      if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-      if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
+      tmp_image[coord]  = image[coord]          * centreWeighting;
+      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
+      tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
     }
   }
 
