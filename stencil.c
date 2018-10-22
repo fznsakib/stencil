@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
   int niters = atoi(argv[3]);
 
   // Allocate the image
-  double *image = _mm_malloc(sizeof(double)*nx*ny, 64);
-  double *tmp_image = _mm_malloc(sizeof(double)*nx*ny, 64);
+  double *image = malloc(sizeof(double)*nx*ny);
+  double *tmp_image = malloc(sizeof(double)*nx*ny);
 
   // Set the input image
   init_image(nx, ny, image, tmp_image);
@@ -55,32 +55,17 @@ int main(int argc, char *argv[]) {
 
 void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   // variables for stencil weightings
-  register double centreWeighting    = 0.6; // 3.0/5.0
-  register double neighbourWeighting = 0.1;  // 0.5/5.0
+  register float centreWeighting    = 0.6; // 3.0/5.0
+  register float neighbourWeighting = 0.1;  // 0.5/5.0
 
-  for (int j = 1; j < ny - 1; ++j) {
-    for (int i = 1; i < nx - 1; ++i) {
+  for (register int j = 0; j < ny; ++j) {
+    for (register int i = 0; i < nx; ++i) {
       // variable for coordinate
       register int coord = i + (j * ny);
 
       tmp_image[coord]                  = image[coord]          * centreWeighting;
-
-      /*if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+      if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
       if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-      if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-      if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;*/
-
-      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-      tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-      tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
-    }
-  }
-
-  for (int j = 0; j < 1; ++j) {
-    for (int i = 0; i < nx - 1; ++i) {
-      tmp_image[coord]                  = image[coord]          * centreWeighting;
-      tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
       if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
       if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
     }
