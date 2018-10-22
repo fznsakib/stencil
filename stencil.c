@@ -58,16 +58,29 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   register double centreWeighting    = 0.6; // 3.0/5.0
   register double neighbourWeighting = 0.1;  // 0.5/5.0
 
-  for (int j = 0; j < ny; ++j) {
-    __assume_aligned(image, 64);
-    __assume_aligned(tmp_image, 64);
-    for (int i = 0; i < nx; ++i) {
+  for (int j = 1; j < ny - 1; ++j) {
+    for (int i = 1; i < nx - 1; ++i) {
       // variable for coordinate
       register int coord = i + (j * ny);
 
       tmp_image[coord]                  = image[coord]          * centreWeighting;
-      if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+
+      /*if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
       if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+      if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
+      if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;*/
+
+      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
+      tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
+    }
+  }
+
+  for (int j = 0; j < 1; ++j) {
+    for (int i = 0; i < nx - 1; ++i) {
+      tmp_image[coord]                  = image[coord]          * centreWeighting;
+      tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
       if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
       if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
     }
