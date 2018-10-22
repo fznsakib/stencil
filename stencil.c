@@ -22,7 +22,6 @@ int main(int argc, char *argv[]) {
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int niters = atoi(argv[3]);
-  int size = nx*ny;
 
   // Allocate the image
   double *image = malloc(sizeof(double)*nx*ny);
@@ -56,13 +55,8 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   // variables for stencil weightings
   register double centreWeighting    = 0.6; // 3.0/5.0
   register double neighbourWeighting = 0.1;  // 0.5/5.0
+  int size = nx*ny;
 
-<<<<<<< HEAD
-  for (register int j = 0; j < ny; ++j) {
-    #pragma simd
-    #pragma ivdep
-    for (register int i = 0; i < nx; ++i) {
-=======
   // Increment j by certain number???
   for (int j = 1; j < ny - 1; ++j) {
     for (int i = 1; i < nx - 1; ++i) {
@@ -71,10 +65,10 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
       register int coord = i + (j * ny);
 
       tmp_image[coord]                  = image[coord]          * centreWeighting;
-      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-      tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-      tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
+      tmp_image[coord] += image[j - 1 + (i*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[j + 1 + (i*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[j + (i - 1)*ny] * neighbourWeighting;
+      tmp_image[coord] += image[j + (i + 1)*ny] * neighbourWeighting;
 
       // tmp_image[coord]                  = image[coord]          * centreWeighting;
       // if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
@@ -98,22 +92,22 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[i]    += image[i - nx] * neighbourWeighting;
   }
 
-  for (int j = nx; j < size; j + nx) {
+  for (int j = nx; j < size; j+= nx) {
     tmp_image[j] = image[j]  * centreWeighting;
     tmp_image[j] += image[j + 1] * neighbourWeighting;
     tmp_image[j] += image[j + nx] * neighbourWeighting;
     tmp_image[j] += image[j - nx] * neighbourWeighting;
   }
 
-  for (int j = (2 * nx) - 1; j < size - 1; j + nx) {
-    tmp_image[i] = image[j]  * centreWeighting;
-    tmp_image[i] += image[j - 1] * neighbourWeighting;
-    tmp_image[i] += image[j + nx] * neighbourWeighting;
-    tmp_image[i] += image[j - nx] * neighbourWeighting;
+  for (int j = (2 * nx) - 1; j < size - 1; j+= nx) {
+    tmp_image[j] = image[j]  * centreWeighting;
+    tmp_image[j] += image[j - 1] * neighbourWeighting;
+    tmp_image[j] += image[j + nx] * neighbourWeighting;
+    tmp_image[j] += image[j - nx] * neighbourWeighting;
   }
 
   // Corners
-  coord = 0;
+  int coord = 0;
   tmp_image[coord] = image[coord]  * centreWeighting;
   tmp_image[coord] = image[coord + 1]  * neighbourWeighting;
   tmp_image[coord] = image[coord + nx]  * neighbourWeighting;
