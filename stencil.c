@@ -56,11 +56,10 @@ int main(int argc, char *argv[]) {
 void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   // variables for stencil weightings
   register float centreWeighting    = 0.6; // 3.0/5.0
-  register int neighbourWeighting   = 0.1; // 0.5/5.0
+  register float neighbourWeighting = 0.1;  // 0.5/5.0
 
-  // first stencil (image to tmp_image)
-  for (int j = 0; j < ny; ++j) {
-    for (int i = 0; i < nx; ++i) {
+  for (register int j = 0; j < ny; ++j) {
+    for (register int i = 0; i < nx; ++i) {
       // variable for coordinate
       register int coord = i + (j * ny);
 
