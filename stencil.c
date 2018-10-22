@@ -59,6 +59,8 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
   for (register int j = 0; j < ny; ++j) {
+    #pragma simd
+    #pragma ivdep
     for (register int i = 0; i < nx; ++i) {
       // variable for coordinate
       register int coord = i + (j * ny);
