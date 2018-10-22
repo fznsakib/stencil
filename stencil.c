@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
   int niters = atoi(argv[3]);
 
   // Allocate the image
-  double *image = malloc(sizeof(double)*nx*ny);
-  double *tmp_image = malloc(sizeof(double)*nx*ny);
+  double *image = _mm_malloc(sizeof(double)*nx*ny, 64);
+  double *tmp_image = _mm_malloc(sizeof(double)*nx*ny, 64);
 
   // Set the input image
   init_image(nx, ny, image, tmp_image);
@@ -59,6 +59,8 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   register double neighbourWeighting = 0.1;  // 0.5/5.0
 
   for (int j = 0; j < ny; ++j) {
+    __assume_aligned(image, 64);
+    __assume_aligned(tmp_image, 64);
     for (int i = 0; i < nx; ++i) {
       // variable for coordinate
       register int coord = i + (j * ny);
