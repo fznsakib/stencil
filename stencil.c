@@ -55,7 +55,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   // variables for stencil weightings
   register double centreWeighting    = 0.6; // 3.0/5.0
   register double neighbourWeighting = 0.1;  // 0.5/5.0
-  register int coord = 0;
+  //register int coord = 0;
 
   // loop for top row
   for (int j = 0; j < 1; ++j) {
@@ -76,11 +76,11 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     }
 
     // top right
-    coord = nx - 1;
+    int a = nx - 1;
 
-    tmp_image[coord]  = image[coord]  * centreWeighting;
-    tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-    tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
+    tmp_image[a]  = image[a]  * centreWeighting;
+    tmp_image[a] += image[a - 1]  * neighbourWeighting;
+    tmp_image[a] += image[a + nx]  * neighbourWeighting;
 
   }
 
@@ -88,61 +88,61 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   for (int j = 1; j < nx - 1; ++j) {
 
     // left column
-    coord = j * nx;
+    int b = j * nx;
 
-    tmp_image[coord]  = image[coord]  * centreWeighting;
-    tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
-    tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
-    tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
+    tmp_image[b]  = image[b]  * centreWeighting;
+    tmp_image[b] += image[b + 1]  * neighbourWeighting;
+    tmp_image[b] += image[b + nx]  * neighbourWeighting;
+    tmp_image[b] += image[b - nx]  * neighbourWeighting;
 
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
-      coord = (j * nx) + i;
+      int c = (j * nx) + i;
 
-      tmp_image[coord]  = image[coord]  * centreWeighting;
-      tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
-      tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-      tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
-      tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
+      tmp_image[c]  = image[c]  * centreWeighting;
+      tmp_image[c] += image[c + 1]  * neighbourWeighting;
+      tmp_image[c] += image[c - 1]  * neighbourWeighting;
+      tmp_image[c] += image[c + nx]  * neighbourWeighting;
+      tmp_image[c] += image[c - nx]  * neighbourWeighting;
     }
 
     // right column
-    coord = (j * nx) + (nx - 1);
+    int d = (j * nx) + (nx - 1);
 
-    tmp_image[coord]  = image[coord]  * centreWeighting;
-    tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-    tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
-    tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
+    tmp_image[d]  = image[d]  * centreWeighting;
+    tmp_image[d] += image[d - 1]  * neighbourWeighting;
+    tmp_image[d] += image[d + nx]  * neighbourWeighting;
+    tmp_image[d] += image[d - nx]  * neighbourWeighting;
   }
 
   // loop for bottom row
   for (int j = ny - 1; j < ny; ++j) {
 
     // bottom left
-    coord = j * nx;
+    int e = j * nx;
 
-    tmp_image[j]  = image[j]  * centreWeighting;
-    tmp_image[j] += image[j + 1]  * neighbourWeighting;
-    tmp_image[j] += image[j - nx]  * neighbourWeighting;
+    tmp_image[e]  = image[e]  * centreWeighting;
+    tmp_image[e] += image[e + 1]  * neighbourWeighting;
+    tmp_image[e] += image[e - nx]  * neighbourWeighting;
 
 
     for (int i = 1; i < nx - 1; ++i) {
       // middle
-      coord = (j * nx) + i;
+      int f = (j * nx) + i;
 
-      tmp_image[coord]  = image[coord]  * centreWeighting;
-      tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-      tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
-      tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
+      tmp_image[f]  = image[f]  * centreWeighting;
+      tmp_image[f] += image[f - 1]  * neighbourWeighting;
+      tmp_image[f] += image[f + 1]  * neighbourWeighting;
+      tmp_image[f] += image[f - nx]  * neighbourWeighting;
     }
 
     // bottom right
-    coord = (nx * ny) - 1;
+    int g = (nx * ny) - 1;
 
-    tmp_image[coord]  = image[coord]  * centreWeighting;
-    tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-    tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
+    tmp_image[g]  = image[g]  * centreWeighting;
+    tmp_image[g] += image[g - 1]  * neighbourWeighting;
+    tmp_image[g] += image[g - nx]  * neighbourWeighting;
   }
 
 
