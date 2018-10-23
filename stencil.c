@@ -63,12 +63,12 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
   #pragma ivdep
-  //for (int j = 0; j < 1; ++j) {
+  for (int j = 0; j < 1; ++j) {
 
     // top left
-    tmp_image[0] = (image[0]       * centreWeighting)     +
-                   (image[1]   * neighbourWeighting) +
-                   (image[nx]  * neighbourWeighting) ;
+    tmp_image[j] = (image[j]       * centreWeighting)     +
+                   (image[j + 1]   * neighbourWeighting) +
+                   (image[j + nx]  * neighbourWeighting) ;
     #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
@@ -85,7 +85,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
                           (image[(nx - 1) - 1]   * neighbourWeighting) +
                           (image[(nx - 1) + nx]  * neighbourWeighting) ;
 
-  //}
+  }
 
   //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
 
@@ -139,7 +139,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
   __assume_aligned(tmp_image, 64);
 
   #pragma ivdep
-  //for (int j = ny - 1; j < ny; ++j) {
+  for (int j = ny - 1; j < ny; ++j) {
 
     // bottom left
 
@@ -150,7 +150,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
     #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
       // middle
-      bottomMiddleCoord = (bottomLeftCoord) + i;
+      bottomMiddleCoord = (j * nx) + i;
 
       tmp_image[bottomMiddleCoord] = (image[bottomMiddleCoord]      * centreWeighting)    +
                                      (image[bottomMiddleCoord - 1]  * neighbourWeighting) +
@@ -163,7 +163,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
     tmp_image[bottomRightCoord] = (image[bottomRightCoord]  * centreWeighting)         +
                                   (image[bottomRightCoord - 1]  * neighbourWeighting)  +
                                   (image[bottomRightCoord - nx]  * neighbourWeighting) ;
-  //}
+  }
 
 
 
