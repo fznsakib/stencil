@@ -85,53 +85,49 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
                           (image[(nx - 1) - 1]   * neighbourWeighting) +
                           (image[(nx - 1) + nx]  * neighbourWeighting) ;
 
-    int leftColCoord = 0;
-    int middleCoord = 0;
-    int rightColCoord = 0;
-
-    __assume_aligned(image, 64);
-    __assume_aligned(tmp_image, 64);
-
-    #pragma ivdep
-    for (int k = 1; k < nx - 1; ++k) {
-
-      // left column
-      leftColCoord = j * nx;
-
-      tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
-                                (image[leftColCoord + 1]   * neighbourWeighting) +
-                                (image[leftColCoord + nx]  * neighbourWeighting) +
-                                (image[leftColCoord - nx]  * neighbourWeighting) ;
-
-      #pragma ivdep
-      for (int i = 1; i < nx - 1; ++i) {
-
-        // middle
-        middleCoord = (k * nx) + i;
-
-        tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
-                                 (image[middleCoord + 1]  * neighbourWeighting) +
-                                 (image[middleCoord - 1]  * neighbourWeighting) +
-                                 (image[middleCoord + nx] * neighbourWeighting) +
-                                 (image[middleCoord - nx] * neighbourWeighting) ;
-      }
-
-      // right column
-      rightColCoord = (k * nx) + (nx - 1);
-
-      tmp_image[rightColCoord] = (image[rightColCoord]      * centreWeighting)    +
-                                 (image[rightColCoord - 1]  * neighbourWeighting) +
-                                 (image[rightColCoord + nx] * neighbourWeighting) +
-                                 (image[rightColCoord - nx] * neighbourWeighting) ;
-    }
-
   }
-
-
 
   //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
 
+  int leftColCoord = 0;
+  int middleCoord = 0;
+  int rightColCoord = 0;
 
+  __assume_aligned(image, 64);
+  __assume_aligned(tmp_image, 64);
+
+  #pragma ivdep
+  for (int j = 1; j < nx - 1; ++j) {
+
+    // left column
+    leftColCoord = j * nx;
+
+    tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
+                              (image[leftColCoord + 1]   * neighbourWeighting) +
+                              (image[leftColCoord + nx]  * neighbourWeighting) +
+                              (image[leftColCoord - nx]  * neighbourWeighting) ;
+
+    #pragma ivdep
+    for (int i = 1; i < nx - 1; ++i) {
+
+      // middle
+      middleCoord = (j * nx) + i;
+
+      tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
+                               (image[middleCoord + 1]  * neighbourWeighting) +
+                               (image[middleCoord - 1]  * neighbourWeighting) +
+                               (image[middleCoord + nx] * neighbourWeighting) +
+                               (image[middleCoord - nx] * neighbourWeighting) ;
+    }
+
+    // right column
+    rightColCoord = (j * nx) + (nx - 1);
+
+    tmp_image[rightColCoord] = (image[rightColCoord]      * centreWeighting)    +
+                               (image[rightColCoord - 1]  * neighbourWeighting) +
+                               (image[rightColCoord + nx] * neighbourWeighting) +
+                               (image[rightColCoord - nx] * neighbourWeighting) ;
+  }
 
   //////////////////////////// LOOP FOR BOTTOM ROW ///////////////////////////
 
