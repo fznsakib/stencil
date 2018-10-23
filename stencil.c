@@ -52,10 +52,10 @@ int main(int argc, char *argv[]) {
 ///////////////////////////////////////////////////////////////////////////////
 
 void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
+
   // variables for stencil weightings
   register double centreWeighting    = 0.6; // 3.0/5.0
   register double neighbourWeighting = 0.1;  // 0.5/5.0
-  //register int coord = 0;
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
@@ -75,76 +75,81 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
                    (image[i + nx]  * neighbourWeighting) ;
     }
 
-    // top right
-    int a = nx - 1;
+    // top right (coordinate = nx - 1)
 
-    tmp_image[a] = (image[a]       * centreWeighting)    +
-                   (image[a - 1]   * neighbourWeighting) +
-                   (image[a + nx]  * neighbourWeighting) ;
+    tmp_image[(nx - 1)] = (image[(nx - 1)]       * centreWeighting)    +
+                          (image[(nx - 1) - 1]   * neighbourWeighting) +
+                          (image[(nx - 1) + nx]  * neighbourWeighting) ;
 
   }
 
   //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
 
+  int leftColCoord = 0;
+  int middleCoord = 0;
+  int rightColCoord = 0;
+
   for (int j = 1; j < nx - 1; ++j) {
 
     // left column
-    int b = j * nx;
+    leftColCoord = j * nx;
 
-    tmp_image[b] = (image[b]       * centreWeighting)    +
-                   (image[b + 1]   * neighbourWeighting) +
-                   (image[b + nx]  * neighbourWeighting) +
-                   (image[b - nx]  * neighbourWeighting) ;
+    tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
+                              (image[leftColCoord + 1]   * neighbourWeighting) +
+                              (image[leftColCoord + nx]  * neighbourWeighting) +
+                              (image[leftColCoord - nx]  * neighbourWeighting) ;
 
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
-      int c = (j * nx) + i;
+      middleCoord = (j * nx) + i;
 
-      tmp_image[c] = (image[c]      * centreWeighting)    +
-                     (image[c + 1]  * neighbourWeighting) +
-                     (image[c - 1]  * neighbourWeighting) +
-                     (image[c + nx] * neighbourWeighting) +
-                     (image[c - nx] * neighbourWeighting) ;
+      tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
+                               (image[middleCoord + 1]  * neighbourWeighting) +
+                               (image[middleCoord - 1]  * neighbourWeighting) +
+                               (image[middleCoord + nx] * neighbourWeighting) +
+                               (image[middleCoord - nx] * neighbourWeighting) ;
     }
 
     // right column
-    int d = (j * nx) + (nx - 1);
+    rightColCoord = (j * nx) + (nx - 1);
 
-    tmp_image[d] = (image[d]      * centreWeighting)    +
-                   (image[d - 1]  * neighbourWeighting) +
-                   (image[d + nx] * neighbourWeighting) +
-                   (image[d - nx] * neighbourWeighting) ;
+    tmp_image[rightColCoord] = (image[rightColCoord]      * centreWeighting)    +
+                               (image[rightColCoord - 1]  * neighbourWeighting) +
+                               (image[rightColCoord + nx] * neighbourWeighting) +
+                               (image[rightColCoord - nx] * neighbourWeighting) ;
   }
 
   //////////////////////////// LOOP FOR BOTTOM ROW ///////////////////////////
 
+  int bottomLeftCoord = (ny - 1) * nx;
+  int bottomMiddleCoord = 0;
+  int bottomRightCoord = (nx * ny) - 1;
+
   for (int j = ny - 1; j < ny; ++j) {
 
     // bottom left
-    int e = j * nx;
 
-    tmp_image[e] = (image[e]      * centreWeighting)    +
-                   (image[e + 1]  * neighbourWeighting) +
-                   (image[e - nx] * neighbourWeighting) ;
+    tmp_image[bottomLeftCoord] = (image[bottomLeftCoord]      * centreWeighting)    +
+                                 (image[bottomLeftCoord + 1]  * neighbourWeighting) +
+                                 (image[bottomLeftCoord - nx] * neighbourWeighting) ;
 
 
     for (int i = 1; i < nx - 1; ++i) {
       // middle
-      int f = (j * nx) + i;
+      bottomMiddleCoord = (j * nx) + i;
 
-      tmp_image[f] = (image[f]      * centreWeighting)    +
-                     (image[f - 1]  * neighbourWeighting) +
-                     (image[f + 1]  * neighbourWeighting) +
-                     (image[f - nx] * neighbourWeighting) ;
+      tmp_image[bottomMiddleCoord] = (image[bottomMiddleCoord]      * centreWeighting)    +
+                                     (image[bottomMiddleCoord - 1]  * neighbourWeighting) +
+                                     (image[bottomMiddleCoord + 1]  * neighbourWeighting) +
+                                     (image[bottomMiddleCoord - nx] * neighbourWeighting) ;
     }
 
     // bottom right
-    int g = (nx * ny) - 1;
 
-    tmp_image[g] = (image[g]  * centreWeighting)         +
-                   (image[g - 1]  * neighbourWeighting)  +
-                   (image[g - nx]  * neighbourWeighting) ;
+    tmp_image[bottomRightCoord] = (image[bottomRightCoord]  * centreWeighting)         +
+                                  (image[bottomRightCoord - 1]  * neighbourWeighting)  +
+                                  (image[bottomRightCoord - nx]  * neighbourWeighting) ;
   }
 
 
