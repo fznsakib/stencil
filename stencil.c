@@ -64,7 +64,6 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[j]  = image[j]  * centreWeighting;
     tmp_image[j] += image[j + 1]  * neighbourWeighting;
     tmp_image[j] += image[j + nx]  * neighbourWeighting;
-    printf("top left\n", );
 
     for (int i = 1; i < nx - 1; ++i) {
 
@@ -82,8 +81,6 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[coord]  = image[coord]  * centreWeighting;
     tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
     tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
-
-    printf("top right\n", );
 
   }
 
@@ -129,8 +126,6 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[j] += image[j + 1]  * neighbourWeighting;
     tmp_image[j] += image[j - nx]  * neighbourWeighting;
 
-    printf("bottom left\n", );
-
 
     for (int i = 1; i < nx - 1; ++i) {
       // middle
@@ -148,8 +143,6 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[coord]  = image[coord]  * centreWeighting;
     tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
     tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
-
-    printf("bottom right\n", );
   }
 
 
