@@ -163,28 +163,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   //     if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
   //   }
   // }
-=======
-  // Corners
-  int coord = 0;
-  tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
-  tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
 
-  coord = ny - 1;
-  tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-  tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
-
-  coord = size - nx;
-  tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
-  tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
-
-  coord = size - 1;
-  tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
-  tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
->>>>>>> 6084d55a60daa470bbe5d859005277ae8abbbf44
 
 }
 
