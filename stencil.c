@@ -67,8 +67,8 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
       register int coord = j + (i * ny);
 
       tmp_image[coord]                  = image[coord]          * centreWeighting;
-      tmp_image[coord] += image[j + (i-1)*ny)] * neighbourWeighting;
-      tmp_image[coord] += image[j + (i+1)*ny)] * neighbourWeighting;
+      tmp_image[coord] += image[j + (i-1)*ny] * neighbourWeighting;
+      tmp_image[coord] += image[j + (i+1)*ny] * neighbourWeighting;
       tmp_image[coord] += image[j - 1 + (i*ny)] * neighbourWeighting;
       tmp_image[coord] += image[j + 1 + (i*ny)] * neighbourWeighting;
 
@@ -81,7 +81,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   }
 
   #pragma ivdep
-  for (int j = 1; i < ny - 1; ++i) {
+  for (int j = 1; j < ny - 1; ++j) {
     tmp_image[j]  = image[j]  * centreWeighting;
     tmp_image[j] += image[j + 1]  * neighbourWeighting;
     tmp_image[j] += image[j - 1]  * neighbourWeighting;
@@ -89,7 +89,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   }
 
   #pragma ivdep
-  for (int j = size - ny + 1; i < size - 1; ++i) {
+  for (int j = size - ny + 1; j < size - 1; ++j) {
     tmp_image[j] = image[j]  * centreWeighting;
     tmp_image[j]    += image[j + 1]  * neighbourWeighting;
     tmp_image[j]    += image[j - 1]  * neighbourWeighting;
@@ -115,25 +115,21 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   // Corners
   int coord = 0;
   tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord]  * centreWeighting;
   tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
   tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
 
   coord = ny - 1;
   tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord]  * centreWeighting;
   tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
   tmp_image[coord] += image[coord + nx]  * neighbourWeighting;
 
   coord = size - nx;
   tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord]  * centreWeighting;
   tmp_image[coord] += image[coord + 1]  * neighbourWeighting;
   tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
 
   coord = size - 1;
   tmp_image[coord] = image[coord]  * centreWeighting;
-  tmp_image[coord] += image[coord]  * centreWeighting;
   tmp_image[coord] += image[coord - 1]  * neighbourWeighting;
   tmp_image[coord] += image[coord - nx]  * neighbourWeighting;
 
