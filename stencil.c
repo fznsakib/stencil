@@ -58,7 +58,9 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   int size = nx*ny;
 
   // Increment j by certain number???
+  #pragma ivdep
   for (int j = 1; j < ny - 1; ++j) {
+    #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
       // variable for coordinate
@@ -78,6 +80,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     }
   }
 
+  #pragma ivdep
   for (int j = 1; i < ny - 1; ++i) {
     tmp_image[j]  = image[j]  * centreWeighting;
     tmp_image[j] += image[j + 1]  * neighbourWeighting;
@@ -85,6 +88,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[j] += image[j + ny] * neighbourWeighting;
   }
 
+  #pragma ivdep
   for (int j = size - ny + 1; i < size - 1; ++i) {
     tmp_image[j] = image[j]  * centreWeighting;
     tmp_image[j]    += image[j + 1]  * neighbourWeighting;
@@ -92,6 +96,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[j]    += image[j - ny] * neighbourWeighting;
   }
 
+  #pragma ivdep
   for (int i = ny; i < size; i+= ny) {
     tmp_image[i] = image[i]  * centreWeighting;
     tmp_image[i] += image[i + 1] * neighbourWeighting;
@@ -99,6 +104,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
     tmp_image[i] += image[i - ny] * neighbourWeighting;
   }
 
+  #pragma ivdep
   for (int i = (2 * ny) - 1; i < size - 1; i+= ny) {
     tmp_image[i] = image[i]  * centreWeighting;
     tmp_image[i] += image[i - 1] * neighbourWeighting;
