@@ -97,7 +97,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
   __assume_aligned(tmp_image, 64);
 
   #pragma ivdep
-  for (int j = 1; j < nx - 1; ++j) {
+  for (int j = 1; j < nx - 1; j += 4) {
 
     // left column
     leftColCoord = j * nx;
@@ -107,17 +107,24 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
                               (image[leftColCoord + nx]  * neighbourWeighting) +
                               (image[leftColCoord - nx]  * neighbourWeighting) ;
 
-    #pragma ivdep
-    for (int i = 1; i < nx - 1; ++i) {
+    for (int i = 1; i < nx - 1; i += 4) {
 
-      // middle
-      middleCoord = (j * nx) + i;
+      for (int jb = j; jb < j + 4; ++jb) {
 
-      tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
-                               (image[middleCoord + 1]  * neighbourWeighting) +
-                               (image[middleCoord - 1]  * neighbourWeighting) +
-                               (image[middleCoord + nx] * neighbourWeighting) +
-                               (image[middleCoord - nx] * neighbourWeighting) ;
+        #pragma ivdep
+        for (int ib = i; ib < i + 4; ++ib) {
+
+          // middle
+          middleCoord = (jb * nx) + i;
+
+          tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
+                                   (image[middleCoord + 1]  * neighbourWeighting) +
+                                   (image[middleCoord - 1]  * neighbourWeighting) +
+                                   (image[middleCoord + nx] * neighbourWeighting) +
+                                   (image[middleCoord - nx] * neighbourWeighting) ;
+
+        }
+      }
     }
 
     // right column
