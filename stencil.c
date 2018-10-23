@@ -5,7 +5,7 @@
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
 
-void stencil(const int nx, const int ny, double *  image, double *  tmp_image);
+void stencil(const int nx, const int ny, double * restrict image, double * restrict tmp_image);
 void init_image(const int nx, const int ny, double *  image, double *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, double *image);
 double wtime(void);
@@ -22,11 +22,12 @@ int main(int argc, char *argv[]) {
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int niters = atoi(argv[3]);
+  int size = nx*ny;
 
   // Allocate the image
-  double *image = malloc(sizeof(double)*nx*ny);
-  double *tmp_image = malloc(sizeof(double)*nx*ny);
-
+  double *image = _mm_malloc(sizeof(double)*nx*ny, 64);
+  double *tmp_image = _mm_malloc(sizeof(double)*nx*ny, 64);
+  
   // Set the input image
   init_image(nx, ny, image, tmp_image);
 
@@ -46,26 +47,29 @@ int main(int argc, char *argv[]) {
   printf("------------------------------------\n");
 
   output_image(OUTPUT_FILE, nx, ny, image);
-  free(image);
+  _mm_free(image);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
+void stencil(const int nx, const int ny, double * restrict image, double * restrict tmp_image) {
 
   // variables for stencil weightings
   register double centreWeighting    = 0.6; // 3.0/5.0
   register double neighbourWeighting = 0.1;  // 0.5/5.0
+  
+  __assume_aligned(image, 64);
+  __assume_aligned(tmp_image, 64);
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
-
+  #pragma ivdep
   for (int j = 0; j < 1; ++j) {
 
     // top left
     tmp_image[j] = (image[j]       * centreWeighting)     +
                    (image[j + 1]   * neighbourWeighting) +
                    (image[j + nx]  * neighbourWeighting) ;
-
+    #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
@@ -88,7 +92,11 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   int leftColCoord = 0;
   int middleCoord = 0;
   int rightColCoord = 0;
+  
+  __assume_aligned(image, 64);
+  __assume_aligned(tmp_image, 64);
 
+  #pragma ivdep
   for (int j = 1; j < nx - 1; ++j) {
 
     // left column
@@ -98,7 +106,8 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
                               (image[leftColCoord + 1]   * neighbourWeighting) +
                               (image[leftColCoord + nx]  * neighbourWeighting) +
                               (image[leftColCoord - nx]  * neighbourWeighting) ;
-
+    
+    #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
@@ -125,7 +134,11 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
   int bottomLeftCoord = (ny - 1) * nx;
   int bottomMiddleCoord = 0;
   int bottomRightCoord = (nx * ny) - 1;
+  
+  __assume_aligned(image, 64);
+  __assume_aligned(tmp_image, 64);
 
+  #pragma ivdep
   for (int j = ny - 1; j < ny; ++j) {
 
     // bottom left
@@ -134,7 +147,7 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
                                  (image[bottomLeftCoord + 1]  * neighbourWeighting) +
                                  (image[bottomLeftCoord - nx] * neighbourWeighting) ;
 
-
+    #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
       // middle
       bottomMiddleCoord = (j * nx) + i;
