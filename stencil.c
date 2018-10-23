@@ -147,8 +147,8 @@ void stencil(const int nx, const int ny, double *  image, double *  tmp_image) {
 
 
 
-  // for (int j = 0; j < 1; ++j) {
-  //   for (int i = 0; i < nx - 1; ++i) {
+  // for (int j = 0; j < ny; ++j) {
+  //   for (int i = 0; i < nx; ++i) {
   //
   //     coord = i + (j * ny);
   //
