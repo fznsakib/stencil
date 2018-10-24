@@ -100,9 +100,9 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
     // left column
     int leftColCoord   = j * nx;
-    int leftColCoord2  = leftColCoord + 1;
-    int leftColCoord3  = leftColCoord + nx;
-    int leftColCoord4  = leftColCoord - nx;
+    int leftColCoord2  = j * nx + 1;
+    int leftColCoord3  = j * nx + nx;
+    int leftColCoord4  = j * nx - nx;
 
     tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
                               (image[leftColCoord2]   +
@@ -113,11 +113,11 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
-      int middleCoord = (j * nx) + i;
-      int middleCoord2 = middleCoord + 1;
-      int middleCoord3 = middleCoord - 1;
-      int middleCoord4 = middleCoord + nx;
-      int middleCoord5 = middleCoord -nx;
+      int middleCoord  = (j * nx) + i;
+      int middleCoord2 = (j * nx) + i + 1;
+      int middleCoord3 = (j * nx) + i - 1;
+      int middleCoord4 = (j * nx) + i + nx;
+      int middleCoord5 = (j * nx) + i -nx;
 
       tmp_image[middleCoord] = (image[middleCoord]       * centreWeighting)    +
                                (image[middleCoord2]   +
@@ -127,12 +127,10 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
     }
 
     // right column
-    int rightColCoord = (j * nx) + (nx - 1);
-
-    int rightColCoord   = j * nx;
-    int rightColCoord2  = rightColCoord - 1;
-    int rightColCoord3  = rightColCoord + nx;
-    int rightColCoord4  = rightColCoord - nx;
+    int rightColCoord   = (j * nx) + (nx - 1);
+    int rightColCoord2  = (j * nx) + (nx - 1) - 1;
+    int rightColCoord3  = (j * nx) + (nx - 1) + nx;
+    int rightColCoord4  = (j * nx) + (nx - 1) - nx;
 
     tmp_image[rightColCoord] = (image[rightColCoord]       * centreWeighting)  +
                                (image[rightColCoord2]   +
