@@ -104,9 +104,9 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
     tmp_image[(j * nx)]  = (image[(j * nx)] * centreWeighting) +
                             (image[(j * nx) + nx] + image[(j * nx) - nx] + image[(j * nx) + 1]) * neighbourWeighting;
 
-    tmp_image[coordRight] = (image[((j * (nx + 1)) - 1)] * centreWeighting) +
-                            (image[((j * (nx + 1)) - 1) + nx] + image[((j * (nx + 1)) - 1) - nx] +
-                             image[((j * (nx + 1)) - 1) - 1]) * neighbourWeighting;
+    tmp_image[(j + (nx + 1)) - 1] = (image[((j * (nx + 1)) - 1)] * centreWeighting) +
+	                             (image[((j * (nx + 1)) - 1) + nx] + image[((j * (nx + 1)) - 1) - nx] +
+                                      image[((j * (nx + 1)) - 1) - 1]) * neighbourWeighting;
 
   }
 
@@ -114,7 +114,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   for (int i = 1; i < nx - 1; ++i) {
     //int coord = ((size - nx) + i);
 
-    tmp_image[((size - nx) + i)] = (image[((size - nx) + i)] * centreWeighting) +
+    tmp_image[(size - nx) + i] = (image[((size - nx) + i)] * centreWeighting) +
                                    (image[((size - nx) + i) - 1] + image[((size - nx) + i) + 1] +
                                     image[((size - nx) + i) - nx]) * neighbourWeighting;
 
@@ -127,7 +127,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
       //int coord = ((j * nx) + i);
 
-      tmp_image[coord] = (image[((j * nx) + i)] * centreWeighting) +
+      tmp_image[(j * nx) + i] = (image[((j * nx) + i)] * centreWeighting) +
                          (image[((j * nx) + i) - 1] + image[((j * nx) + i) + 1] +
                           image[((j * nx) + i) + nx] + image[((j * nx) + i) - nx]) * neighbourWeighting;
     }
