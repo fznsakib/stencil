@@ -60,6 +60,12 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
 
   __assume_aligned(image, 64);
   __assume_aligned(tmp_image, 64);
+  __assume(nx%16==0);
+
+  // do corners, outside row/column then middle
+  // use float, factorise multiplier out
+  // -Ofast
+  // valgrind --tool-cachegrind
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
   #pragma ivdep
@@ -97,7 +103,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
   __assume_aligned(tmp_image, 64);
 
   #pragma ivdep
-  for (int j = 1; j < nx - 1; j += 4) {
+  for (int j = 1; j < nx - 1; ++j) {
 
     // left column
     leftColCoord = j * nx;
@@ -107,24 +113,17 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
                               (image[leftColCoord + nx]  * neighbourWeighting) +
                               (image[leftColCoord - nx]  * neighbourWeighting) ;
 
-    for (int i = 1; i < nx - 1; i += 4) {
+    #pragma ivdep
+    for (int i = 1; i < nx - 1; ++i) {
 
-      for (int jb = j; jb < j + 4; ++jb) {
+      // middle
+      middleCoord = (j * nx) + i;
 
-        #pragma ivdep
-        for (int ib = i; ib < i + 4; ++ib) {
-
-          // middle
-          middleCoord = (jb * nx) + i;
-
-          tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
-                                   (image[middleCoord + 1]  * neighbourWeighting) +
-                                   (image[middleCoord - 1]  * neighbourWeighting) +
-                                   (image[middleCoord + nx] * neighbourWeighting) +
-                                   (image[middleCoord - nx] * neighbourWeighting) ;
-
-        }
-      }
+      tmp_image[middleCoord] = (image[middleCoord]      * centreWeighting)    +
+                               (image[middleCoord + 1]  * neighbourWeighting) +
+                               (image[middleCoord - 1]  * neighbourWeighting) +
+                               (image[middleCoord + nx] * neighbourWeighting) +
+                               (image[middleCoord - nx] * neighbourWeighting) ;
     }
 
     // right column
