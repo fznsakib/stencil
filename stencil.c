@@ -72,7 +72,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
 
     // top left
     tmp_image[j] = (image[j]     * centreWeighting) +
-                   (image[j + 1] + image[j + nx])   * neighbourWeighting) ;
+                   (image[j + 1] + image[j + nx])   * neighbourWeighting;
     #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
@@ -84,7 +84,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
     // top right (coordinate = nx - 1)
 
     tmp_image[(nx - 1)] = (image[(nx - 1)]       * centreWeighting)    +
-                          (image[(nx - 1) - 1]  + image[(nx - 1) + nx])  * neighbourWeighting ;
+                          (image[(nx - 1) - 1]  + image[(nx - 1) + nx])  * neighbourWeighting;
 
   }
 
@@ -157,7 +157,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
                                      (image[bottomMiddleCoord - 1]   +
                                       image[bottomMiddleCoord + 1]   +
                                       image[bottomMiddleCoord - nx]) * neighbourWeighting;
-
+    }
 
     // bottom right
 
