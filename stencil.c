@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int niters = atoi(argv[3]);
+  int size = nx*ny;
 
   // Allocate the image
   float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
@@ -53,8 +54,6 @@ int main(int argc, char *argv[]) {
 
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image) {
 
-  int size = nx*ny;
-
   // variables for stencil weightings
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
@@ -68,83 +67,8 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   // -Ofast
   // valgrind --tool-cachegrind
 
-  //////////////////////////////// CORNERS ////////////////////////////////////
-
-  // top left
-  tmp_image[0]             = (image[0] * centreWeighting) +
-                             (image[1] + image[nx]) * neighbourWeighting;
-
-   // top border
-   for (int i = 1; i < nx - 1; ++i) {
-
-     tmp_image[i] = (image[i] * centreWeighting) +
-                    (image[i - 1] + image[i + 1] + image[i + nx]) * neighbourWeighting;
-
-   }
-
-  // top right
-  tmp_image[nx - 1]        = (image[nx - 1] * centreWeighting) +
-                             (image[nx - 2] + image[(nx - 1) + nx]) * neighbourWeighting;
-
- // left AND right borders
- for (int j = 1; j < ny - 1; ++j) {
-   //int coordLeft = (j * nx);
-   //int coordRight = ((j * (nx + 1)) - 1);
-
-   tmp_image[(j * nx)]  = (image[(j * nx)] * centreWeighting) +
-                           (image[(j * nx) + nx] + image[(j * nx) - nx] + image[(j * nx) + 1]) * neighbourWeighting;
-
-   tmp_image[(j + (nx + 1)) - 1] = (image[((j * (nx + 1)) - 1)] * centreWeighting) +
-	                             (image[((j * (nx + 1)) - 1) + nx] + image[((j * (nx + 1)) - 1) - nx] +
-                                     image[((j * (nx + 1)) - 1) - 1]) * neighbourWeighting;
-
- }
-
- /////////////////////////////////// MAIN /////////////////////////////////////
-
- for (int j = 1; j < nx - 1; ++j) {
-   for (int i = 1; i < nx - 1; ++i) {
-
-     //int coord = ((j * nx) + i);
-
-     tmp_image[(j * nx) + i] = (image[((j * nx) + i)] * centreWeighting) +
-                        (image[((j * nx) + i) - 1] + image[((j * nx) + i) + 1] +
-                         image[((j * nx) + i) + nx] + image[((j * nx) + i) - nx]) * neighbourWeighting;
-   }
- }
- 
-
-  // bottom left
-  tmp_image[size - nx - 1] = (image[size - nx - 1] * centreWeighting) +
-                             (image[size - nx] + image[size - nx - nx - 1]) * neighbourWeighting;
-
- // bottom border
- for (int i = 1; i < nx - 1; ++i) {
-   //int coord = ((size - nx) + i);
-
-   tmp_image[(size - nx) + i] = (image[((size - nx) + i)] * centreWeighting) +
-                                  (image[((size - nx) + i) - 1] + image[((size - nx) + i) + 1] +
-                                   image[((size - nx) + i) - nx]) * neighbourWeighting;
-
- }
-
-  // bottom right
-  tmp_image[size - 1]      = (image[size - 1] * centreWeighting) +
-                             (image[size - nx - 1] + image[size - 2]) * neighbourWeighting;
-
-  //////////////////////////////// BORDERS ////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
-  /*#pragma ivdep
+  #pragma ivdep
   for (int j = 0; j < 1; ++j) {
 
     // top left
@@ -241,7 +165,28 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
     tmp_image[bottomRightCoord] = (image[bottomRightCoord]       * centreWeighting) +
                                   (image[bottomRightCoord - 1]   +
                                    image[bottomRightCoord - nx]) * neighbourWeighting;
-  }*/
+  }
+
+
+
+  // for (int j = 0; j < ny; ++j) {
+  //   for (int i = 0; i < nx; ++i) {
+  //
+  //     coord = i + (j * ny);
+  //
+  //     tmp_image[coord]                  = image[coord]          * centreWeighting;
+  //     tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+  //     tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+  //     tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
+  //     tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
+  //
+  //     tmp_image[coord]                  = image[coord]          * centreWeighting;
+  //     if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
+  //     if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
+  //     if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
+  //     if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
+  //   }
+  // }
 
 
 }
