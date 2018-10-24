@@ -98,23 +98,25 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
   // left AND right borders
   for (int j = 1; j < ny - 1; ++j) {
-    int coordLeft = j * nx;
-    int coordRight = (j * (nx + 1)) - 1;
+    //int coordLeft = (j * nx);
+    //int coordRight = ((j * (nx + 1)) - 1);
 
-    tmp_image[coordLeft]  = (image[coordLeft] * centreWeighting) +
-                            (image[coordLeft + nx] + image[coordLeft - nx] + image[coordLeft + 1]) * neighbourWeighting;
+    tmp_image[(j * nx)]  = (image[(j * nx)] * centreWeighting) +
+                            (image[(j * nx) + nx] + image[(j * nx) - nx] + image[(j * nx) + 1]) * neighbourWeighting;
 
-    tmp_image[coordRight] = (image[coordRight] * centreWeighting) +
-                            (image[coordRight + nx] + image[coordLeft - nx] + image[coordRight - 1]) * neighbourWeighting;
+    tmp_image[coordRight] = (image[((j * (nx + 1)) - 1)] * centreWeighting) +
+                            (image[((j * (nx + 1)) - 1) + nx] + image[((j * (nx + 1)) - 1) - nx] +
+                             image[((j * (nx + 1)) - 1) - 1]) * neighbourWeighting;
 
   }
 
   // bottom border
   for (int i = 1; i < nx - 1; ++i) {
-    int coord = (size - nx) + i;
+    //int coord = ((size - nx) + i);
 
-    tmp_image[coord] = (image[coord] * centreWeighting) +
-                       (image[coord - 1] + image[coord + 1] + image[coord - nx]) * neighbourWeighting;
+    tmp_image[((size - nx) + i)] = (image[((size - nx) + i)] * centreWeighting) +
+                                   (image[((size - nx) + i) - 1] + image[((size - nx) + i) + 1] +
+                                    image[((size - nx) + i) - nx]) * neighbourWeighting;
 
   }
 
@@ -123,10 +125,11 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   for (int j = 1; j < nx - 1; ++j) {
     for (int i = 1; i < nx - 1; ++i) {
 
-      int coord = (j * nx) + i;
+      //int coord = ((j * nx) + i);
 
-      tmp_image[coord] = (image[coord] * centreWeighting) +
-                         (image[coord - 1] + image[coord + 1] + image[coord + nx] + image[coord - nx]) * neighbourWeighting;
+      tmp_image[coord] = (image[((j * nx) + i)] * centreWeighting) +
+                         (image[((j * nx) + i) - 1] + image[((j * nx) + i) + 1] +
+                          image[((j * nx) + i) + nx] + image[((j * nx) + i) - nx]) * neighbourWeighting;
     }
   }
 
