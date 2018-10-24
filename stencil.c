@@ -91,9 +91,6 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
   //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
 
-  int leftColCoord = 0;
-  int middleCoord = 0;
-  int rightColCoord = 0;
 
   __assume_aligned(image, 64);
   __assume_aligned(tmp_image, 64);
@@ -102,33 +99,45 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   for (int j = 1; j < nx - 1; ++j) {
 
     // left column
-    leftColCoord = j * nx;
+    int leftColCoord   = j * nx;
+    int leftColCoord2 += 1;
+    int leftColCoord3 += nx;
+    int leftColCoord4 -= nx;
 
     tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
-                              (image[leftColCoord + 1]   +
-                               image[leftColCoord + nx]  +
-                               image[leftColCoord - nx]) * neighbourWeighting;
+                              (image[leftColCoord2]   +
+                               image[leftColCoord3]  +
+                               image[leftColCoord4]) * neighbourWeighting;
 
     #pragma ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
-      middleCoord = (j * nx) + i;
+      int middleCoord = (j * nx) + i;
+      int middleCoord2 += 1;
+      int middleCoord3 -= 1;
+      int middleCoord4 += nx;
+      int middleCoord5 -= nx;
 
       tmp_image[middleCoord] = (image[middleCoord]       * centreWeighting)    +
-                               (image[middleCoord + 1]   +
-                                image[middleCoord - 1]   +
-                                image[middleCoord + nx]  +
-                                image[middleCoord - nx]) * neighbourWeighting;
+                               (image[middleCoord2]   +
+                                image[middleCoord3]   +
+                                image[middleCoord4]  +
+                                image[middleCoord5]) * neighbourWeighting;
     }
 
     // right column
-    rightColCoord = (j * nx) + (nx - 1);
+    int rightColCoord = (j * nx) + (nx - 1);
+
+    int rightColCoord   = j * nx;
+    int rightColCoord2 -= 1;
+    int rightColCoord3 += nx;
+    int rightColCoord4 -= nx;
 
     tmp_image[rightColCoord] = (image[rightColCoord]       * centreWeighting)  +
-                               (image[rightColCoord - 1]   +
-                                image[rightColCoord + nx]  +
-                                image[rightColCoord - nx]) * neighbourWeighting;
+                               (image[rightColCoord2]   +
+                                image[rightColCoord3]  +
+                                image[rightColCoord4]) * neighbourWeighting;
   }
 
   //////////////////////////// LOOP FOR BOTTOM ROW ///////////////////////////
