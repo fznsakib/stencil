@@ -1,2 +1,2 @@
 stencil: stencil.c
-	icc -std=c99 -Wall $^ -O3 -fast -xhost -restrict -o $@
+	gcc -std=c99 -Wall $^ -O -ftree-vectorize -Ofast -march=native -findirect-inlining -o $@

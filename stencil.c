@@ -22,11 +22,19 @@ int main(int argc, char *argv[]) {
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int niters = atoi(argv[3]);
-  int size = nx*ny;
 
   // Allocate the image
-  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  //float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  //float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  
+  float *image = malloc(sizeof(float)*nx*ny); 
+  float *tmp_image = malloc(sizeof(float)*nx*ny);
+
+  //float *image __attribute__((aligned(64)));
+  //float *tmp_image __attribute__((aligned(64)));
+  
+  //image __attribute__ ((aligned(64));
+  //tmp_image __attribute__ ((aligned(64));
 
   // Set the input image
   init_image(nx, ny, image, tmp_image);
@@ -47,7 +55,8 @@ int main(int argc, char *argv[]) {
   printf("------------------------------------\n");
 
   output_image(OUTPUT_FILE, nx, ny, image);
-  _mm_free(image);
+  //_mm_free(image);
+  free(image);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -58,23 +67,22 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
-  __assume_aligned(image, 64);
-  __assume_aligned(tmp_image, 64);
-  __assume(nx%16==0);
+  //__assume_aligned(image, 64);
+  //__assume_aligned(tmp_image, 64);
+  //__assume(nx%16==0);
 
-  // do corners, outside row/column then middle
-  // use float, factorise multiplier out
-  // -Ofast
-  // valgrind --tool-cachegrind
-
+ 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
-  #pragma ivdep
+ 
+  //#pragma ivdep
+  #pragma GCC ivdep
   for (int j = 0; j < 1; ++j) {
 
     // top left
     tmp_image[j] = (image[j]     * centreWeighting) +
                    (image[j + 1] + image[j + nx])   * neighbourWeighting;
-    #pragma ivdep
+    //#pragma ivdep
+    #pragma GCC ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
@@ -95,10 +103,12 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int middleCoord = 0;
   int rightColCoord = 0;
 
-  __assume_aligned(image, 64);
-  __assume_aligned(tmp_image, 64);
+  //__assume_aligned(image, 64);
+  //__assume_aligned(tmp_image, 64);
+  //__assume(nx%16==0);
 
-  #pragma ivdep
+  //#pragma ivdep
+  #pragma GCC ivdep
   for (int j = 1; j < nx - 1; ++j) {
 
     // left column
@@ -109,7 +119,8 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
                                image[leftColCoord + nx]  +
                                image[leftColCoord - nx]) * neighbourWeighting;
 
-    #pragma ivdep
+    //#pragma ivdep
+    #pragma GCC ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
       // middle
@@ -138,10 +149,12 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int bottomMiddleCoord = 0;
   int bottomRightCoord = (nx * ny) - 1;
 
-  __assume_aligned(image, 64);
-  __assume_aligned(tmp_image, 64);
+  //__assume_aligned(image, 64);
+  //__assume_aligned(tmp_image, 64);
+  //__assume(nx%16==0);
 
-  #pragma ivdep
+  //#pragma ivdep
+  #pragma GCC ivdep
   for (int j = ny - 1; j < ny; ++j) {
 
     // bottom left
@@ -150,7 +163,8 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
                                  (image[bottomLeftCoord + 1]   +
                                   image[bottomLeftCoord - nx]) * neighbourWeighting;
 
-    #pragma ivdep
+    //#pragma ivdep
+    #pragma GCC ivdep
     for (int i = 1; i < nx - 1; ++i) {
       // middle
       bottomMiddleCoord = (j * nx) + i;
