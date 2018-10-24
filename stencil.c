@@ -99,7 +99,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   // left AND right borders
   for (int j = 1; j < ny - 1; ++j) {
     int coordLeft = j * nx;
-    int coordRight = (j * (nx + 1)) - 1)
+    int coordRight = (j * (nx + 1)) - 1;
 
     tmp_image[coordLeft]  = (image[coordLeft] * centreWeighting) +
                             (image[coordLeft + nx] + image[coordLeft - nx] + image[coordLeft + 1]) * neighbourWeighting;
@@ -110,7 +110,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   }
 
   // bottom border
-  for (int i = 1; i < nx - 1; ++j) {
+  for (int i = 1; i < nx - 1; ++i) {
     int coord = (size - nx) + i;
 
     tmp_image[coord] = (image[coord] * centreWeighting) +
@@ -121,7 +121,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   /////////////////////////////////// MAIN /////////////////////////////////////
 
   for (int j = 1; j < nx - 1; ++j) {
-    for (int i = 1; i < nx - 1; ++j) {
+    for (int i = 1; i < nx - 1; ++i) {
 
       int coord = (j * nx) + i;
 
