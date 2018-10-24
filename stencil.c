@@ -5,9 +5,9 @@
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
 
-void stencil(const int nx, const int ny, double * restrict image, double * restrict tmp_image);
-void init_image(const int nx, const int ny, double *  image, double *  tmp_image);
-void output_image(const char * file_name, const int nx, const int ny, double *image);
+void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
+void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
+void output_image(const char * file_name, const int nx, const int ny, float *image);
 double wtime(void);
 
 int main(int argc, char *argv[]) {
@@ -25,8 +25,8 @@ int main(int argc, char *argv[]) {
   int size = nx*ny;
 
   // Allocate the image
-  double *image = _mm_malloc(sizeof(double)*nx*ny, 64);
-  double *tmp_image = _mm_malloc(sizeof(double)*nx*ny, 64);
+  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
 
   // Set the input image
   init_image(nx, ny, image, tmp_image);
@@ -52,14 +52,15 @@ int main(int argc, char *argv[]) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void stencil(const int nx, const int ny, double * restrict image, double * restrict tmp_image) {
+void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image) {
 
   // variables for stencil weightings
-  register double centreWeighting    = 0.6; // 3.0/5.0
-  register double neighbourWeighting = 0.1;  // 0.5/5.0
+  register float centreWeighting    = 0.6; // 3.0/5.0
+  register float neighbourWeighting = 0.1;  // 0.5/5.0
 
   __assume_aligned(image, 64);
   __assume_aligned(tmp_image, 64);
+  __assume(nx%16==0);
 
   // do corners, outside row/column then middle
   // use float, factorise multiplier out
@@ -193,7 +194,7 @@ void stencil(const int nx, const int ny, double * restrict image, double * restr
 ///////////////////////////////////////////////////////////////////////////////
 
 // Create the input image
-void init_image(const int nx, const int ny, double *  image, double *  tmp_image) {
+void init_image(const int nx, const int ny, float * image, float * tmp_image) {
   // Zero everything
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
@@ -216,7 +217,7 @@ void init_image(const int nx, const int ny, double *  image, double *  tmp_image
 }
 
 // Routine to output the image in Netpbm grayscale binary image format
-void output_image(const char * file_name, const int nx, const int ny, double *image) {
+void output_image(const char * file_name, const int nx, const int ny, float *image) {
 
   // Open output file
   FILE *fp = fopen(file_name, "w");
