@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <immintrin.h>
 
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
@@ -24,17 +25,14 @@ int main(int argc, char *argv[]) {
   int niters = atoi(argv[3]);
 
   // Allocate the image
-  //float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-  //float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
   
-  float *image = malloc(sizeof(float)*nx*ny); 
-  float *tmp_image = malloc(sizeof(float)*nx*ny);
+  //float *image = malloc(sizeof(float)*nx*ny); 
+  //float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-  //float *image __attribute__((aligned(64)));
-  //float *tmp_image __attribute__((aligned(64)));
-  
-  //image __attribute__ ((aligned(64));
-  //tmp_image __attribute__ ((aligned(64));
+  void *imageP = __builtin_assume_aligned(image, 64);
+  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 64);
 
   // Set the input image
   init_image(nx, ny, image, tmp_image);
@@ -43,8 +41,8 @@ int main(int argc, char *argv[]) {
   double tic = wtime();
 
   for (int t = 0; t < niters; ++t) {
-    stencil(nx, ny, image, tmp_image);
-    stencil(nx, ny, tmp_image, image);
+    stencil(nx, ny, imageP, tmp_imageP);
+    stencil(nx, ny, tmp_imageP, imageP);
   }
 
   double toc = wtime();
@@ -55,8 +53,9 @@ int main(int argc, char *argv[]) {
   printf("------------------------------------\n");
 
   output_image(OUTPUT_FILE, nx, ny, image);
-  //_mm_free(image);
-  free(image);
+  
+  _mm_free(image);
+  //free(image);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
