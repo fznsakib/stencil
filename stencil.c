@@ -31,8 +31,8 @@ int main(int argc, char *argv[]) {
   //float *image = malloc(sizeof(float)*nx*ny); 
   //float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-  void *imageP = __builtin_assume_aligned(image, 64);
-  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 64);
+  void *imageP = __builtin_assume_aligned(image, 16);
+  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
 
   // Set the input image
   init_image(nx, ny, image, tmp_image);
