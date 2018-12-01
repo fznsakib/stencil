@@ -66,10 +66,6 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
-  //__assume_aligned(image, 64);
-  //__assume_aligned(tmp_image, 64);
-  //__assume(nx%16==0);
-
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
@@ -102,13 +98,9 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int middleCoord = 0;
   int rightColCoord = 0;
 
-  //__assume_aligned(image, 64);
-  //__assume_aligned(tmp_image, 64);
-  //__assume(nx%16==0);
-
   //#pragma ivdep
   #pragma GCC ivdep
-  for (int j = 1; j < nx - 1; ++j) {
+  for (int j = 1; j < ny - 1; ++j) {
 
     // left column
     leftColCoord = j * nx;
@@ -148,10 +140,6 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int bottomMiddleCoord = 0;
   int bottomRightCoord = (nx * ny) - 1;
 
-  //__assume_aligned(image, 64);
-  //__assume_aligned(tmp_image, 64);
-  //__assume(nx%16==0);
-
   //#pragma ivdep
   #pragma GCC ivdep
   for (int j = ny - 1; j < ny; ++j) {
@@ -180,28 +168,6 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
                                   (image[bottomRightCoord - 1]   +
                                    image[bottomRightCoord - nx]) * neighbourWeighting;
   }
-
-
-
-  // for (int j = 0; j < ny; ++j) {
-  //   for (int i = 0; i < nx; ++i) {
-  //
-  //     coord = i + (j * ny);
-  //
-  //     tmp_image[coord]                  = image[coord]          * centreWeighting;
-  //     tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-  //     tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-  //     tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-  //     tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
-  //
-  //     tmp_image[coord]                  = image[coord]          * centreWeighting;
-  //     if (i > 0)      tmp_image[coord] += image[i - 1 + (j*ny)] * neighbourWeighting;
-  //     if (i < nx - 1) tmp_image[coord] += image[i + 1 + (j*ny)] * neighbourWeighting;
-  //     if (j > 0)      tmp_image[coord] += image[i + (j - 1)*ny] * neighbourWeighting;
-  //     if (j < ny - 1) tmp_image[coord] += image[i + (j + 1)*ny] * neighbourWeighting;
-  //   }
-  // }
-
 
 }
 
