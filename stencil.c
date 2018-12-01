@@ -27,8 +27,8 @@ int main(int argc, char *argv[]) {
   // Allocate the image
   float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
   float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
-  
-  //float *image = malloc(sizeof(float)*nx*ny); 
+
+  //float *image = malloc(sizeof(float)*nx*ny);
   //float *tmp_image = malloc(sizeof(float)*nx*ny);
 
   void *imageP = __builtin_assume_aligned(image, 16);
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   printf("------------------------------------\n");
 
   output_image(OUTPUT_FILE, nx, ny, image);
-  
+
   _mm_free(image);
   //free(image);
 }
@@ -70,9 +70,9 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   //__assume_aligned(tmp_image, 64);
   //__assume(nx%16==0);
 
- 
+
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
- 
+
   //#pragma ivdep
   #pragma GCC ivdep
   for (int j = 0; j < 1; ++j) {

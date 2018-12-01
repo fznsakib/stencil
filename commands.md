@@ -14,7 +14,6 @@ module load 'moduleName' - load module
 
 module rm 'moduleName' - unload module
 
-
 ## Stencil commands
 
 make - build the code
@@ -50,9 +49,8 @@ git pull - pull changes
 
 ## gprof (Profiling)
 
--pg - in Makefile to compile analysis file
+\-pg - in Makefile to compile analysis file
 
 gprof stencil - open profile data
-
 
 S5SV-69XPM25G - Intel code
