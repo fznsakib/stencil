@@ -4,8 +4,18 @@
 #PBS -joe
 #PBS -m a
 #PBS -qteaching
-#PBS -lnodes=1:ppn=16
+#PBS -l nodes=1:ppn=16
 #PBS -lwalltime=00:10:00
+
+#! Create a machine file for MPI
+cat $PBS_NODEFILE > machine.file.$PBS_JOBID
+
+numprocs=`wc $PBS_NODEFILE | awk '{ print $1 }'`
+
+#! Run the parallel MPI executable (nodes*ppn)
+mpirun -np $numprocs \
+       -machinefile machine.file.$PBS_JOBID \
+       $application $options
 
 cd $PBS_O_WORKDIR
 
