@@ -2,16 +2,13 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <immintrin.h>
-#include "mpi.h"
 
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
-#define MASTER 0
 
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
-int calc_ncols_from_rank(int rank, int size);
 double wtime(void);
 
 int main(int argc, char *argv[]) {
@@ -22,9 +19,6 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // Initialise MPI
-  MPI_Init( &argc, &argv );
-
   // Initiliase problem dimensions from command line arguments
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
@@ -33,6 +27,9 @@ int main(int argc, char *argv[]) {
   // Allocate the image
   float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
   float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+
+  //float *image = malloc(sizeof(float)*nx*ny);
+  //float *tmp_image = malloc(sizeof(float)*nx*ny);
 
   void *imageP = __builtin_assume_aligned(image, 16);
   void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
@@ -58,10 +55,7 @@ int main(int argc, char *argv[]) {
   output_image(OUTPUT_FILE, nx, ny, image);
 
   _mm_free(image);
-
-  MPI_Finalize();
-
-  return EXIT_SUCCESS;
+  //free(image);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -72,23 +66,6 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
-  // variables for MPI_Init
-  int start_col,end_col; /* rank dependent looping indices */
-  int iterations;        /* index for timestep iterations */
-  int rank;              /* the rank of this process */
-  int size;              /* number of processes in the communicator */
-  int left;              /* the rank of the process to the left */
-  int right;             /* the rank of the process to the right */
-  int tag = 0;           /* scope for adding extra information to a message */
-  MPI_Status status;     /* struct used by MPI_Recv */
-  int local_nrows;       /* number of rows apportioned to this rank */
-  int local_ncols;       /* number of columns apportioned to this rank */
-  int remote_ncols;      /* number of columns apportioned to a remote rank */
-  double *sendbuf;       /* buffer to hold values to send */
-  double *recvbuf;       /* buffer to hold received values */
-
-  MPI_Comm_size( MPI_COMM_WORLD, &size );
-  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
@@ -121,6 +98,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int middleCoord = 0;
   int rightColCoord = 0;
 
+  //#pragma ivdep
   #pragma GCC ivdep
   for (int j = 1; j < ny - 1; ++j) {
 
@@ -132,6 +110,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
                                image[leftColCoord + nx]  +
                                image[leftColCoord - nx]) * neighbourWeighting;
 
+    //#pragma ivdep
     #pragma GCC ivdep
     for (int i = 1; i < nx - 1; ++i) {
 
@@ -161,6 +140,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int bottomMiddleCoord = 0;
   int bottomRightCoord = (nx * ny) - 1;
 
+  //#pragma ivdep
   #pragma GCC ivdep
   for (int j = ny - 1; j < ny; ++j) {
 
@@ -170,6 +150,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
                                  (image[bottomLeftCoord + 1]   +
                                   image[bottomLeftCoord - nx]) * neighbourWeighting;
 
+    //#pragma ivdep
     #pragma GCC ivdep
     for (int i = 1; i < nx - 1; ++i) {
       // middle
