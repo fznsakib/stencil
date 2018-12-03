@@ -9,7 +9,7 @@
 #PBS -m a
 
 #! application name
-application="stencil.c"
+application="stencil"
 
 #! Run options for the application
 options="1024 100 100"
