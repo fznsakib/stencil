@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 
   // Call the stencil kernel
   double tic = wtime();
-  
+
   // Initialise MPI
   MPI_Init( &argc, &argv);
 
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
     stencil(nx, ny, imageP, tmp_imageP);
     stencil(nx, ny, tmp_imageP, imageP);
   }
-  
+
   MPI_Finalize();
 
   double toc = wtime();
@@ -73,22 +73,22 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
   // variables for MPI_Init
-  //int start_col,end_col; /* rank dependent looping indices */
-  //int iterations;        /* index for timestep iterations */
-  //int rank;              /* the rank of this process */
-  //int size;              /* number of processes in the communicator */
-  //int left;              /* the rank of the process to the left */
-  //int right;             /* the rank of the process to the right */
-  //int tag = 0;           /* scope for adding extra information to a message */
-  //MPI_Status status;     /* struct used by MPI_Recv */
-  //int local_nrows;       /* number of rows apportioned to this rank */
-  //int local_ncols;       /* number of columns apportioned to this rank */
-  //int remote_ncols;      /* number of columns apportioned to a remote rank */
-  //double *sendbuf;       /* buffer to hold values to send */
-  //double *recvbuf;       /* buffer to hold received values */
+  int start_col,end_col; /* rank dependent looping indices */
+  int iterations;        /* index for timestep iterations */
+  int rank;              /* the rank of this process */
+  int size;              /* number of processes in the communicator */
+  int left;              /* the rank of the process to the left */
+  int right;             /* the rank of the process to the right */
+  int tag = 0;           /* scope for adding extra information to a message */
+  MPI_Status status;     /* struct used by MPI_Recv */
+  int local_nrows;       /* number of rows apportioned to this rank */
+  int local_ncols;       /* number of columns apportioned to this rank */
+  int remote_ncols;      /* number of columns apportioned to a remote rank */
+  double *sendbuf;       /* buffer to hold values to send */
+  double *recvbuf;       /* buffer to hold received values */
 
-  //MPI_Comm_size( MPI_COMM_WORLD, &size );
-  //MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+  MPI_Comm_size( MPI_COMM_WORLD, &size );
+  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
