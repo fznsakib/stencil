@@ -1,2 +1,0 @@
-stencil: stencil.c
-	gcc -std=c99 -Wall $^ -O -ftree-vectorize -Ofast -march=native -falign-loops=64 -o $@

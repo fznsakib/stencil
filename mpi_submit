@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N stencil
+#PBS -N stencilMPI
 #PBS -o OUT
 #PBS -q teaching
 #PBS -l nodes=1:ppn=4,walltime=00:05:00
@@ -9,10 +9,10 @@
 #PBS -m a
 
 #! application name
-application="stencil"
+application="stencilMPI"
 
 #! Run options for the application
-options="1024 100 100"
+options="1024 1024 100"
 
 ###############################################################
 ### You should not have to change anything below this line ####
@@ -35,4 +35,4 @@ cat $PBS_NODEFILE > machine.file.$PBS_JOBID
 numnodes=`wc $PBS_NODEFILE | awk '{ print $1 }'`
 
 #! Run the parallel MPI executable (nodes*ppn)
-mpirun -np $numnodes -machinefile machine.file.$PBS_JOBID $application $optionss
+mpirun -np $numnodes -machinefile machine.file.$PBS_JOBID $application $options
