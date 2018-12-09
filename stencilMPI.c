@@ -16,7 +16,7 @@
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
-int calc_ncols_from_rank(int rank, int size);
+int calculateCols(int rank, int size);
 double wtime(void);
 
 int main(int argc, char *argv[]) {
@@ -80,6 +80,8 @@ int main(int argc, char *argv[]) {
 
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image) {
 
+  ////////////////////////////// INITIALISATION /////////////////////////////////
+
   // variables for stencil weightings
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
@@ -87,7 +89,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   // variables for MPI_Init
   int ii,jj;             /* row and column indices for the grid */
   int kk;                /* index for looping over ranks */
-  int start_col,end_col; /* rank dependent looping indices */
+  int startCol,endCol; /* rank dependent looping indices */
   int iterations;        /* index for timestep iterations */
   int rank;              /* the rank of this process */
   int size;              /* number of processes in the communicator */
@@ -95,17 +97,29 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int right;             /* the rank of the process to the right */
   int tag = 0;           /* scope for adding extra information to a message */
   MPI_Status status;     /* struct used by MPI_Recv */
-  int local_nrows;       /* number of rows apportioned to this rank */
-  int local_ncols;       /* number of columns apportioned to this rank */
-  int remote_ncols;      /* number of columns apportioned to a remote rank */
-  double *sendbuf;       /* buffer to hold values to send */
-  double *recvbuf;       /* buffer to hold received values */
-  double *printbuf;      /* buffer to hold values for printing */
+  int localNRows;       /* number of rows apportioned to this rank */
+  int localNCols;       /* number of columns apportioned to this rank */
+  int remoteNCols;      /* number of columns apportioned to a remote rank */
+  double *sendBuf;       /* buffer to hold values to send */
+  double *recvBuf;       /* buffer to hold received values */
+  double *printBuf;      /* buffer to hold values for printing */
 
+  // Get size and rank to identify process
   MPI_Comm_size( MPI_COMM_WORLD, &size );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-  if (rank == 0) printf("Hello world, this is process %d out of %d\n", rank, size);
+  // if (rank == 0) printf("Hello world, this is process %d out of %d\n", rank, size);
+
+  // Get left and right process ranks. Ensure correct neighbours for boundary ranks
+  if (rank == MASTER) left = rank + size - 1;
+  else                left = rank - 1;
+
+  right = (rank + 1) % size;
+
+  // Determine local grid size. Rows will be the same for all process ranks.
+  // Columns may be different
+  localNRows = NROWS;
+  localNCols = calculateCols(rank, size);
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
@@ -273,4 +287,17 @@ double wtime(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return tv.tv_sec + tv.tv_usec*1e-6;
+}
+
+// Calculate the number of columns for the specified process rank
+int calculateCols(int rank, int size) {
+  int ncols;
+
+  ncols = NCOLS / size;       /* integer division */
+  if ((NCOLS % size) != 0) {  /* if there is a remainder */
+    if (rank == size - 1)
+      ncols += NCOLS % size;  /* add remainder to last rank */
+  }
+
+  return ncols;
 }
