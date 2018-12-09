@@ -89,7 +89,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   // variables for MPI_Init
   int ii,jj;             /* row and column indices for the grid */
   int kk;                /* index for looping over ranks */
-  int startCol,endCol; /* rank dependent looping indices */
+  int startCol,endCol;   /* rank dependent looping indices */
   int iterations;        /* index for timestep iterations */
   int rank;              /* the rank of this process */
   int size;              /* number of processes in the communicator */
@@ -97,9 +97,11 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int right;             /* the rank of the process to the right */
   int tag = 0;           /* scope for adding extra information to a message */
   MPI_Status status;     /* struct used by MPI_Recv */
-  int localNRows;       /* number of rows apportioned to this rank */
-  int localNCols;       /* number of columns apportioned to this rank */
-  int remoteNCols;      /* number of columns apportioned to a remote rank */
+  int localNRows;        /* number of rows apportioned to this rank */
+  int localNCols;        /* number of columns apportioned to this rank */
+  int remoteNCols;       /* number of columns apportioned to a remote rank */
+  double **u;            /* local stencil grid at iteration t - 1 */
+  double **w;            /* local stencil grid at iteration t */
   double *sendBuf;       /* buffer to hold values to send */
   double *recvBuf;       /* buffer to hold received values */
   double *printBuf;      /* buffer to hold values for printing */
@@ -120,6 +122,27 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   // Columns may be different
   localNRows = NROWS;
   localNCols = calculateCols(rank, size);
+
+  // Allocate memory for the local grid with 2 extra columns for halos
+  // Two grids for previous and current iteration
+  u = (double**)malloc(sizeof(double*) * localNRows);
+  for(ii=0;ii<localNRows;ii++) {
+    u[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
+  }
+
+  w = (double**)malloc(sizeof(double*) * localNRows);
+  for(ii=0;ii<localNRows;ii++) {
+    w[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
+  }
+
+  // Allocate memory for buffers for message passing
+  sendBuf = (double*)malloc(sizeof(double) * localNRows);
+  recvBuf = (double*)malloc(sizeof(double) * localNRows);
+
+  // The last rank has the most columns apportioned.
+  // printBuf must be big enough to hold this number
+  remoteNCols = calculateCols(size-1, size);
+  printBuf = (double*)malloc(sizeof(double) * (remoteNCols + 2));
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
