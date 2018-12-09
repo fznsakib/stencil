@@ -5,7 +5,7 @@
 #include "mpi.h"
 
 // Define output file name
-#define OUTPUT_FILE "stencil.pgm"
+#define OUTPUT_FILE "stencilMPI.pgm"
 #define MASTER 0
 #define NROWS 4
 #define NCOLS 16
@@ -27,30 +27,31 @@ int main(int argc, char *argv[]) {
   int rank;
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
+  // Check usage
+  if (argc != 4) {
+    fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
+
+  // Initiliase problem dimensions from command line arguments
+  int nx = atoi(argv[1]);
+  int ny = atoi(argv[2]);
+  int niters = atoi(argv[3]);
+  double tic, toc;
+
+  // Allocate the image
+  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+
+  void *imageP = __builtin_assume_aligned(image, 16);
+  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
+
   if (rank == 0) {
-    // Check usage
-    if (argc != 4) {
-      fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
-      exit(EXIT_FAILURE);
-    }
+  // Set the input image
+  init_image(nx, ny, image, tmp_image);
 
-    // Initiliase problem dimensions from command line arguments
-    int nx = atoi(argv[1]);
-    int ny = atoi(argv[2]);
-    int niters = atoi(argv[3]);
-
-    // Allocate the image
-    float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-    float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
-
-    void *imageP = __builtin_assume_aligned(image, 16);
-    void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
-
-    // Set the input image
-    init_image(nx, ny, image, tmp_image);
-
-    // Call the stencil kernel
-    double tic = wtime();
+  // Call the stencil kernel
+  double tic = wtime();
   }
 
   for (int t = 0; t < niters; ++t) {
@@ -60,7 +61,7 @@ int main(int argc, char *argv[]) {
 
 
   if (rank == 0) {
-    
+
     double toc = wtime();
 
     // Output
