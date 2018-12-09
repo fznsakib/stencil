@@ -7,6 +7,11 @@
 // Define output file name
 #define OUTPUT_FILE "stencil.pgm"
 #define MASTER 0
+#define NROWS 4
+#define NCOLS 16
+#define EPSILON 0.01
+#define ITERS 18
+#define MASTER 0
 
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
@@ -16,48 +21,57 @@ double wtime(void);
 
 int main(int argc, char *argv[]) {
 
-  // Check usage
-  if (argc != 4) {
-    fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
-    exit(EXIT_FAILURE);
-  }
-
-  // Initiliase problem dimensions from command line arguments
-  int nx = atoi(argv[1]);
-  int ny = atoi(argv[2]);
-  int niters = atoi(argv[3]);
-
-  // Allocate the image
-  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
-
-  void *imageP = __builtin_assume_aligned(image, 16);
-  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
-
-  // Set the input image
-  init_image(nx, ny, image, tmp_image);
-
-  // Call the stencil kernel
-  double tic = wtime();
-
   // Initialise MPI
   MPI_Init( &argc, &argv);
+
+  int rank;
+  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+
+  if (rank == 0) {
+    // Check usage
+    if (argc != 4) {
+      fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
+      exit(EXIT_FAILURE);
+    }
+
+    // Initiliase problem dimensions from command line arguments
+    int nx = atoi(argv[1]);
+    int ny = atoi(argv[2]);
+    int niters = atoi(argv[3]);
+
+    // Allocate the image
+    float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+    float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+
+    void *imageP = __builtin_assume_aligned(image, 16);
+    void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
+
+    // Set the input image
+    init_image(nx, ny, image, tmp_image);
+
+    // Call the stencil kernel
+    double tic = wtime();
+  }
 
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, imageP, tmp_imageP);
     stencil(nx, ny, tmp_imageP, imageP);
   }
 
+
+  if (rank == 0) {
+    
+    double toc = wtime();
+
+    // Output
+    printf("------------------------------------\n");
+    printf(" runtime: %lf s\n", toc-tic);
+    printf("------------------------------------\n");
+
+    output_image(OUTPUT_FILE, nx, ny, image);
+  }
+
   MPI_Finalize();
-
-  double toc = wtime();
-
-  // Output
-  printf("------------------------------------\n");
-  printf(" runtime: %lf s\n", toc-tic);
-  printf("------------------------------------\n");
-
-  output_image(OUTPUT_FILE, nx, ny, image);
 
   _mm_free(image);
 
@@ -73,6 +87,8 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
   // variables for MPI_Init
+  int ii,jj;             /* row and column indices for the grid */
+  int kk;                /* index for looping over ranks */
   int start_col,end_col; /* rank dependent looping indices */
   int iterations;        /* index for timestep iterations */
   int rank;              /* the rank of this process */
@@ -86,10 +102,11 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int remote_ncols;      /* number of columns apportioned to a remote rank */
   double *sendbuf;       /* buffer to hold values to send */
   double *recvbuf;       /* buffer to hold received values */
+  double *printbuf;      /* buffer to hold values for printing */
 
   MPI_Comm_size( MPI_COMM_WORLD, &size );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
- 
+
   if (rank == 0) printf("Hello world, this is process %d out of %d", rank, size);
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
