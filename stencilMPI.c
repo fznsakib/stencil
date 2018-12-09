@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int niters = atoi(argv[3]);
-  double tic, toc;
 
   // Allocate the image
   float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
@@ -49,21 +48,19 @@ int main(int argc, char *argv[]) {
   if (rank == 0) {
   // Set the input image
   init_image(nx, ny, image, tmp_image);
-
-  // Call the stencil kernel
-  double tic = wtime();
   }
 
+  double tic = wtime();
+
+  // Call the stencil kernel
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, imageP, tmp_imageP);
     stencil(nx, ny, tmp_imageP, imageP);
   }
 
+  double toc = wtime();
 
   if (rank == 0) {
-
-    double toc = wtime();
-
     // Output
     printf("------------------------------------\n");
     printf(" runtime: %lf s\n", toc-tic);
