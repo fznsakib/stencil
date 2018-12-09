@@ -105,7 +105,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   MPI_Comm_size( MPI_COMM_WORLD, &size );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-  if (rank == 0) printf("Hello world, this is process %d out of %d", rank, size);
+  if (rank == 0) printf("Hello world, this is process %d out of %d\n", rank, size);
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 

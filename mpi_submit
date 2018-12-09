@@ -12,7 +12,10 @@
 application="stencilMPI"
 
 #! Run options for the application
-options="1024 1024 100"
+options1="1024 1024 100"
+options2="4096 4096 100"
+options3="8000 8000 100"
+
 
 ###############################################################
 ### You should not have to change anything below this line ####
@@ -35,4 +38,6 @@ cat $PBS_NODEFILE > machine.file.$PBS_JOBID
 numnodes=`wc $PBS_NODEFILE | awk '{ print $1 }'`
 
 #! Run the parallel MPI executable (nodes*ppn)
-mpirun -np $numnodes -machinefile machine.file.$PBS_JOBID $application $options
+mpirun -np $numnodes -machinefile machine.file.$PBS_JOBID $application $options1
+mpirun -np $numnodes -machinefile machine.file.$PBS_JOBID $application $options2
+mpirun -np $numnodes -machinefile machine.file.$PBS_JOBID $application $options3
