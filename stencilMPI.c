@@ -27,6 +27,11 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+  // Initialise problem dimensions from command line arguments
+  int nx = atoi(argv[1]);
+  int ny = atoi(argv[2]);
+  int niters = atoi(argv[3]);
+
   ////////////////////////////// MPI VARIABLES /////////////////////////////////
   int flag;
   int ii,jj;             /* row and column indices for the grid */
@@ -53,7 +58,7 @@ int main(int argc, char *argv[]) {
   MPI_Init( &argc, &argv);
 
   MPI_Initialized(&flag);
-  if (flag != TRUE) {
+  if (flag != 1) {
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
 
@@ -75,11 +80,6 @@ int main(int argc, char *argv[]) {
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
-  // Initialise problem dimensions from command line arguments
-  int nx = atoi(argv[1]);
-  int ny = atoi(argv[2]);
-  int niters = atoi(argv[3]);
-
   // Whole image
   float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
   float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
-  if (rank = 0 || rank = size - 1) {
+  if (rank == 0 || rank == size - 1) {
     grid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
     newGrid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
   }
