@@ -1,5 +1,0 @@
-
-MPI:74579 terminated with signal 11 at PC=402838 SP=7fffffffc510.  Backtrace:
-MPI(main+0x268)[0x402838]
-/lib64/libc.so.6(__libc_start_main+0xfd)[0x2aaaabf73d5d]
-MPI[0x400dc9]

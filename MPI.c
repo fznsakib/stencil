@@ -47,12 +47,12 @@ int main(int argc, char *argv[]) {
   int localNRows;        /* number of rows apportioned to this rank */
   int localNCols;        /* number of columns apportioned to this rank */
   int remoteNRows;       /* number of columns apportioned to a remote rank */
-  float *grid;          /* local stencil grid at iteration t - 1 */
-  float *newGrid;       /* local stencil grid at iteration t */
-  float *image;         /* images and pointers to images */
-  float *tmp_image;
-  void  *imageP;
-  void  *tmp_imageP;
+  float **grid;          /* local stencil grid at iteration t - 1 */
+  float **newGrid;       /* local stencil grid at iteration t */
+  //float *image;          /* images and pointers to images */
+  //float *tmp_image;
+  //void  *imageP;
+  //void  *tmp_imageP;
   float *sendBuf;       /* buffer to hold values to send */
   float *recvBuf;       /* buffer to hold received values */
   float *printBuf;      /* buffer to hold values for printing */
@@ -85,31 +85,44 @@ int main(int argc, char *argv[]) {
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
   // Set the input image for rank 0 only
-  if (rank == 0) {
-    float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-    float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  
+    //float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+    //float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+    
+    float *image = malloc(sizeof(float)*nx*ny);
+    float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-    void *imageP = __builtin_assume_aligned(image, 16);
-    void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
+    //void *imageP = __builtin_assume_aligned(image, 16);
+    //void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
 
     init_image(nx, ny, image, tmp_image);
+    
+    float val2 = image[200];
+    printf("VALUE: %f\n", val2);
+    
+  
+  
+  if (rank == 0) {
+    float val2 = image[0];
+    printf("VALUE outside init: %f\n", val2);
   }
-
+  
+  
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
-    grid = malloc(sizeof(float*) * localNCols);
-    newGrid = malloc(sizeof(float*) * localNCols);
+    grid = (float**)malloc(sizeof(float*) * localNCols);
+    newGrid = (float**)malloc(sizeof(float*) * localNCols);
 
-    for (ii = 0; i < localNCols; ii++) {
+    for (ii = 0; ii < localNCols; ii++) {
       grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
       newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
     }
   }
   else {
-    grid = malloc(sizeof(float*) * localNCols);
-    newGrid = malloc(sizeof(float*) * localNCols);
-    for (ii = 0; i < localNCols; ii++) {
+    grid = (float**)malloc(sizeof(float*) * localNCols);
+    newGrid = (float**)malloc(sizeof(float*) * localNCols);
+    for (ii = 0; ii < localNCols; ii++) {
       grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
       newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
     }
@@ -128,16 +141,19 @@ int main(int argc, char *argv[]) {
 
   // Populate local grid for rank 0
   if (rank == 0) {
+    float val;
     for (int j = 0; j < localNRows; j++) {
       for (int i = 0; i < localNCols; i++) {
-        grid[i][j] = image[(j * localNCols) + i];
-	      printf("j = %d, i = %d", j, i);
+        val = image[(j * localNCols) + i];
+	//printf("val: %2f\n", val);
+	//grid[i][j] = image[(j * localNCols) + i];
+	//printf("j = %d, i = %d", j, i);
       }
     }
     printf("rank 0 populated local grid\n");
   }
 
-  printf("process %d is here 2\n", rank);
+  printf("process %d is here\n", rank);
 
   // TO DO
   // MASTER rank will have whole image before dishing it out to
@@ -173,7 +189,9 @@ int main(int argc, char *argv[]) {
   MPI_Finalize();
 
   _mm_free(image);
-
+  
+  printf("FINISH");
+  
   return EXIT_SUCCESS;
 }
 

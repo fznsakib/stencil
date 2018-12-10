@@ -1,9 +1,20 @@
-Running on host node31-030
-Time is Mon Dec 10 18:40:28 GMT 2018
+Running on host node31-032
+Time is Mon Dec 10 20:28:25 GMT 2018
 Directory is /panfs/panasas01/cosc/ss16161/stencil
-PBS job ID is 7806355.master.cm.cluster
+PBS job ID is 7807019.master.cm.cluster
 This jobs runs on the following machines:
-node31-030
-process 1 is here 2
-process 3 is here 2
-process 2 is here 2
+node31-032
+VALUE: 100.000000
+VALUE: 100.000000
+process 3 is here
+VALUE: 100.000000
+VALUE outside init: 0.000000
+process 2 is here
+rank 0 populated local grid
+process 0 is here
+------------------------------------
+ runtime: 0.000000 s
+------------------------------------
+VALUE: 100.000000
+process 1 is here
+FINISHFINISHFINISHFINISH
