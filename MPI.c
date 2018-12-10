@@ -40,8 +40,8 @@ int main(int argc, char *argv[]) {
   int iterations;        /* index for timestep iterations */
   int rank;              /* the rank of this process */
   int size;              /* number of processes in the communicator */
-  int left;              /* the rank of the process to the left */
-  int right;             /* the rank of the process to the right */
+  int up;                /* the rank of the process above */
+  int down;              /* the rank of the process below */
   int tag = 0;           /* scope for adding extra information to a message */
   MPI_Status status;     /* struct used by MPI_Recv */
   int localNRows;        /* number of rows apportioned to this rank */
@@ -49,9 +49,9 @@ int main(int argc, char *argv[]) {
   int remoteNRows;       /* number of columns apportioned to a remote rank */
   float **grid;          /* local stencil grid at iteration t - 1 */
   float **newGrid;       /* local stencil grid at iteration t */
-  float *sendBuf;       /* buffer to hold values to send */
-  float *recvBuf;       /* buffer to hold received values */
-  float *printBuf;      /* buffer to hold values for printing */
+  float *sendBuf;        /* buffer to hold values to send */
+  float *recvBuf;        /* buffer to hold received values */
+  float *printBuf;       /* buffer to hold values for printing */
 
   ////////////////////////////// INITIALISE MPI /////////////////////////////////
 
@@ -68,10 +68,10 @@ int main(int argc, char *argv[]) {
 
   // Get left and right process ranks
   // Ensure correct neighbours for boundary ranks
-  if (rank == MASTER) left = rank + size - 1;
-  else                left = rank - 1;
+  if (rank == MASTER) up = size - 1;
+  else                up = rank - 1;
 
-  right = (rank + 1) % size;
+  down = (rank + 1) % size;
 
   // Determine local grid size. Columns will be the same for all process ranks.
   // Rows may be different
@@ -151,7 +151,6 @@ int main(int argc, char *argv[]) {
 
   if (rank == 0) {
     init_image(nx, ny, image, tmp_image);
-
   }
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
