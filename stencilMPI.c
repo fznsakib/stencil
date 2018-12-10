@@ -21,9 +21,35 @@ double wtime(void);
 
 int main(int argc, char *argv[]) {
 
-  int flag;
+  // Check usage
+  if (argc != 4) {
+    fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
 
-  // Initialise MPI
+  ////////////////////////////// MPI VARIABLES /////////////////////////////////
+  int flag;
+  int ii,jj;             /* row and column indices for the grid */
+  int kk;                /* index for looping over ranks */
+  int startCol,endCol;   /* rank dependent looping indices */
+  int iterations;        /* index for timestep iterations */
+  int rank;              /* the rank of this process */
+  int size;              /* number of processes in the communicator */
+  int left;              /* the rank of the process to the left */
+  int right;             /* the rank of the process to the right */
+  int tag = 0;           /* scope for adding extra information to a message */
+  MPI_Status status;     /* struct used by MPI_Recv */
+  int localNRows;        /* number of rows apportioned to this rank */
+  int localNCols;        /* number of columns apportioned to this rank */
+  int remoteNCols;       /* number of columns apportioned to a remote rank */
+  double *grid;          /* local stencil grid at iteration t - 1 */
+  double *newGrid;       /* local stencil grid at iteration t */
+  double *sendBuf;       /* buffer to hold values to send */
+  double *recvBuf;       /* buffer to hold received values */
+  double *printBuf;      /* buffer to hold values for printing */
+
+  ////////////////////////////// INITIALISE MPI /////////////////////////////////
+
   MPI_Init( &argc, &argv);
 
   MPI_Initialized(&flag);
@@ -31,29 +57,60 @@ int main(int argc, char *argv[]) {
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
 
-  int rank;
+  // Get size and rank to identify process
+  MPI_Comm_size( MPI_COMM_WORLD, &size );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
 
-  // Check usage
-  if (argc != 4) {
-    fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
-    exit(EXIT_FAILURE);
-  }
+  // Get left and right process ranks
+  // Ensure correct neighbours for boundary ranks
+  if (rank == MASTER) left = rank + size - 1;
+  else                left = rank - 1;
 
-  // Initiliase problem dimensions from command line arguments
+  right = (rank + 1) % size;
+
+  // Determine local grid size. Columns will be the same for all process ranks.
+  // Rows may be different
+  localNRows = calculateRows(rank, size, nx);
+  localNCols = ny;
+
+  ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
+
+  // Initialise problem dimensions from command line arguments
   int nx = atoi(argv[1]);
   int ny = atoi(argv[2]);
   int niters = atoi(argv[3]);
 
-  // Allocate the image
+  // Whole image
   float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
   float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
 
   void *imageP = __builtin_assume_aligned(image, 16);
   void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
 
+  // Local grid: 2 extra rows for halos, 1 row for first and last ranks
+  // Two grids for previous and current iteration
+  if (rank = 0 || rank = size - 1) {
+    grid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
+    newGrid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
+  }
+  else {
+    grid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
+    newGrid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
+  }
+
+  // Buffers for message passing
+  sendBuf = (double*)malloc(sizeof(double) * localNCols);
+  recvBuf = (double*)malloc(sizeof(double) * localNCols);
+
+  // The last rank has the most columns apportioned.
+  // printBuf must be big enough to hold this number
+  remoteNCols = calculateCols(size-1, size, nx);
+  printBuf = (double*)malloc(sizeof(double) * (remoteNCols + 2));
+
+  ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
+
+  // Set the input image for rank 0 only
   if (rank == 0) {
-    // Set the input image
     init_image(nx, ny, image, tmp_image);
   }
 
@@ -62,9 +119,10 @@ int main(int argc, char *argv[]) {
   // the other ranks. MASTER rank will then be left with top-most
   // row
 
+  //////////////////////////////// CALL STENCIL /////////////////////////////////
+
   double tic = wtime();
 
-  // Call the stencil kernel
   for (int t = 0; t < niters; ++t) {
     stencil(nx, ny, imageP, tmp_imageP);
     stencil(nx, ny, tmp_imageP, imageP);
@@ -72,11 +130,15 @@ int main(int argc, char *argv[]) {
 
   double toc = wtime();
 
+  ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
+
   // TO DO
   // Get all local grids from nodes and produce final image
 
+
+  ////////////////////////////////// OUTPUT /////////////////////////////////////
+
   if (rank == 0) {
-    // Output
     printf("------------------------------------\n");
     printf(" runtime: %lf s\n", toc-tic);
     printf("------------------------------------\n");
@@ -100,64 +162,6 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   // variables for stencil weightings
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
-
-  // variables for MPI_Init
-  int ii,jj;             /* row and column indices for the grid */
-  int kk;                /* index for looping over ranks */
-  int startCol,endCol;   /* rank dependent looping indices */
-  int iterations;        /* index for timestep iterations */
-  int rank;              /* the rank of this process */
-  int size;              /* number of processes in the communicator */
-  int left;              /* the rank of the process to the left */
-  int right;             /* the rank of the process to the right */
-  int tag = 0;           /* scope for adding extra information to a message */
-  MPI_Status status;     /* struct used by MPI_Recv */
-  int localNRows;        /* number of rows apportioned to this rank */
-  int localNCols;        /* number of columns apportioned to this rank */
-  int remoteNCols;       /* number of columns apportioned to a remote rank */
-  double **grid;         /* local stencil grid at iteration t - 1 */
-  double **newGrid;      /* local stencil grid at iteration t */
-  double *sendBuf;       /* buffer to hold values to send */
-  double *recvBuf;       /* buffer to hold received values */
-  double *printBuf;      /* buffer to hold values for printing */
-
-  // Get size and rank to identify process
-  MPI_Comm_size( MPI_COMM_WORLD, &size );
-  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-
-  // if (rank == 0) printf("Hello world, this is process %d out of %d\n", rank, size);
-
-  // Get left and right process ranks. Ensure correct neighbours for boundary ranks
-  if (rank == MASTER) left = rank + size - 1;
-  else                left = rank - 1;
-
-  right = (rank + 1) % size;
-
-  // Determine local grid size. Rows will be the same for all process ranks.
-  // Columns may be different
-  localNRows = calculateRows(rank, size, nx);
-  localNCols = ny;
-
-  // Allocate memory for the local grid with 2 extra columns for halos
-  // Two grids for previous and current iteration
-  grid = (double**)malloc(sizeof(double*) * localNRows);
-  for(ii = 0; ii < localNRows; ii++) {
-    grid[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
-  }
-
-  newGrid = (double**)malloc(sizeof(double*) * localNRows);
-  for(ii = 0; ii < localNRows; ii++) {
-    newGrid[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
-  }
-
-  // Allocate memory for buffers for message passing
-  sendBuf = (double*)malloc(sizeof(double) * localNRows);
-  recvBuf = (double*)malloc(sizeof(double) * localNRows);
-
-  // The last rank has the most columns apportioned.
-  // printBuf must be big enough to hold this number
-  remoteNCols = calculateCols(size-1, size, nx);
-  printBuf = (double*)malloc(sizeof(double) * (remoteNCols + 2));
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
