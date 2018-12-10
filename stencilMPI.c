@@ -47,15 +47,15 @@ int main(int argc, char *argv[]) {
   int localNRows;        /* number of rows apportioned to this rank */
   int localNCols;        /* number of columns apportioned to this rank */
   int remoteNRows;       /* number of columns apportioned to a remote rank */
-  double *grid;          /* local stencil grid at iteration t - 1 */
-  double *newGrid;       /* local stencil grid at iteration t */
+  float *grid;          /* local stencil grid at iteration t - 1 */
+  float *newGrid;       /* local stencil grid at iteration t */
   float  *image;         /* images and pointers to images */
   float  *tmp_image;
   void   *imageP;
   void   *tmp_imageP;
-  double *sendBuf;       /* buffer to hold values to send */
-  double *recvBuf;       /* buffer to hold received values */
-  double *printBuf;      /* buffer to hold values for printing */
+  float *sendBuf;       /* buffer to hold values to send */
+  float *recvBuf;       /* buffer to hold received values */
+  float *printBuf;      /* buffer to hold values for printing */
 
   ////////////////////////////// INITIALISE MPI /////////////////////////////////
 
@@ -98,22 +98,22 @@ int main(int argc, char *argv[]) {
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
-    grid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
-    newGrid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
+    grid = malloc(sizeof(float*) * (localNCols*localNRows) + (1*localNCols));
+    newGrid = malloc(sizeof(float*) * (localNCols*localNRows) + (1*localNCols));
   }
   else {
-    grid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
-    newGrid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
+    grid = malloc(sizeof(float*) * (localNCols*localNRows) + (2*localNCols));
+    newGrid = malloc(sizeof(float*) * (localNCols*localNRows) + (2*localNCols));
   }
 
   // Buffers for message passing
-  sendBuf = (double*)malloc(sizeof(double) * localNCols);
-  recvBuf = (double*)malloc(sizeof(double) * localNCols);
+  sendBuf = malloc(sizeof(float) * localNCols);
+  recvBuf = malloc(sizeof(float) * localNCols);
 
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
   remoteNRows = calculateRows(size-1, size, ny);
-  printBuf = (double*)malloc(sizeof(double) * (remoteNRows + 2));
+  printBuf = malloc(sizeof(float) * (remoteNRows + 2));
 
 
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
