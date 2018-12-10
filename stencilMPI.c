@@ -16,13 +16,20 @@
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
-int calculateCols(int rank, int size);
+int calculateCols(int rank, int size, int ny);
 double wtime(void);
 
 int main(int argc, char *argv[]) {
 
+  int flag;
+
   // Initialise MPI
   MPI_Init( &argc, &argv);
+
+  MPI_Initialized(&flag);
+  if (flag != TRUE) {
+    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+  }
 
   int rank;
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
@@ -46,8 +53,8 @@ int main(int argc, char *argv[]) {
   void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
 
   if (rank == 0) {
-  // Set the input image
-  init_image(nx, ny, image, tmp_image);
+    // Set the input image
+    init_image(nx, ny, image, tmp_image);
   }
 
   double tic = wtime();
@@ -100,8 +107,8 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
   int localNRows;        /* number of rows apportioned to this rank */
   int localNCols;        /* number of columns apportioned to this rank */
   int remoteNCols;       /* number of columns apportioned to a remote rank */
-  double **u;            /* local stencil grid at iteration t - 1 */
-  double **w;            /* local stencil grid at iteration t */
+  double **grid;         /* local stencil grid at iteration t - 1 */
+  double **newGrid;      /* local stencil grid at iteration t */
   double *sendBuf;       /* buffer to hold values to send */
   double *recvBuf;       /* buffer to hold received values */
   double *printBuf;      /* buffer to hold values for printing */
@@ -120,19 +127,19 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
   // Determine local grid size. Rows will be the same for all process ranks.
   // Columns may be different
-  localNRows = NROWS;
-  localNCols = calculateCols(rank, size);
+  localNRows = nx;
+  localNCols = calculateCols(rank, size, ny);
 
   // Allocate memory for the local grid with 2 extra columns for halos
   // Two grids for previous and current iteration
-  u = (double**)malloc(sizeof(double*) * localNRows);
-  for(ii=0;ii<localNRows;ii++) {
-    u[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
+  grid = (double**)malloc(sizeof(double*) * localNRows);
+  for(ii = 0; ii < localNRows; ii++) {
+    grid[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
   }
 
-  w = (double**)malloc(sizeof(double*) * localNRows);
-  for(ii=0;ii<localNRows;ii++) {
-    w[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
+  newGrid = (double**)malloc(sizeof(double*) * localNRows);
+  for(ii = 0; ii < localNRows; ii++) {
+    newGrid[ii] = (double*)malloc(sizeof(double) * (localNCols + 2));
   }
 
   // Allocate memory for buffers for message passing
@@ -313,13 +320,13 @@ double wtime(void) {
 }
 
 // Calculate the number of columns for the specified process rank
-int calculateCols(int rank, int size) {
+int calculateCols(int rank, int size, int ny) {
   int ncols;
 
-  ncols = NCOLS / size;       /* integer division */
-  if ((NCOLS % size) != 0) {  /* if there is a remainder */
+  ncols = ny / size;       /* integer division */
+  if ((ny % size) != 0) {  /* if there is a remainder */
     if (rank == size - 1)
-      ncols += NCOLS % size;  /* add remainder to last rank */
+      ncols += ny % size;  /* add remainder to last rank */
   }
 
   return ncols;
