@@ -98,22 +98,31 @@ int main(int argc, char *argv[]) {
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
-    grid = malloc(sizeof(float*) * (localNCols*localNRows) + (1*localNCols));
-    newGrid = malloc(sizeof(float*) * (localNCols*localNRows) + (1*localNCols));
+    grid = malloc(sizeof(float*) * localNCols);
+    newGrid = malloc(sizeof(float*) * localNCols);
+
+    for (ii = 0; i < localNCols; ii++) {
+      grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
+      newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
+    }
   }
   else {
-    grid = malloc(sizeof(float*) * (localNCols*localNRows) + (2*localNCols));
-    newGrid = malloc(sizeof(float*) * (localNCols*localNRows) + (2*localNCols));
+    grid = malloc(sizeof(float*) * localNCols);
+    newGrid = malloc(sizeof(float*) * localNCols);
+    for (ii = 0; i < localNCols; ii++) {
+      grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
+      newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
+    }
   }
-  
+
   // Buffers for message passing
-  sendBuf = malloc(sizeof(float) * localNCols);
-  recvBuf = malloc(sizeof(float) * localNCols);
+  sendBuf = (float*)malloc(sizeof(float) * localNCols);
+  recvBuf = (float*)malloc(sizeof(float) * localNCols);
 
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
   remoteNRows = calculateRows(size-1, size, ny);
-  printBuf = malloc(sizeof(float) * (remoteNRows + 2));
+  printBuf = (float*)malloc(sizeof(float) * (remoteNRows + 2));
 
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
@@ -121,15 +130,15 @@ int main(int argc, char *argv[]) {
   if (rank == 0) {
     for (int j = 0; j < localNRows; j++) {
       for (int i = 0; i < localNCols; i++) {
-        grid[(j * localNCols) + i] = image[(j * localNCols) + i];
-	printf("j = %d, i = %d", j, i);
+        grid[i][j] = image[(j * localNCols) + i];
+	      printf("j = %d, i = %d", j, i);
       }
     }
     printf("rank 0 populated local grid\n");
   }
 
   printf("process %d is here 2\n", rank);
-  
+
   // TO DO
   // MASTER rank will have whole image before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most
@@ -150,8 +159,6 @@ int main(int argc, char *argv[]) {
 
   // TO DO
   // Get all local grids from nodes and produce final image
-
-
 
   ////////////////////////////////// OUTPUT /////////////////////////////////////
 
