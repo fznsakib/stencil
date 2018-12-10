@@ -49,10 +49,6 @@ int main(int argc, char *argv[]) {
   int remoteNRows;       /* number of columns apportioned to a remote rank */
   float **grid;          /* local stencil grid at iteration t - 1 */
   float **newGrid;       /* local stencil grid at iteration t */
-  //float *image;          /* images and pointers to images */
-  //float *tmp_image;
-  //void  *imageP;
-  //void  *tmp_imageP;
   float *sendBuf;       /* buffer to hold values to send */
   float *recvBuf;       /* buffer to hold received values */
   float *printBuf;      /* buffer to hold values for printing */
@@ -84,30 +80,12 @@ int main(int argc, char *argv[]) {
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
-  // Set the input image for rank 0 only
-  
-    //float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-    //float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
-    
-    float *image = malloc(sizeof(float)*nx*ny);
-    float *tmp_image = malloc(sizeof(float)*nx*ny);
+  // Set the input image
+  float *image = malloc(sizeof(float)*nx*ny);
+  float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-    //void *imageP = __builtin_assume_aligned(image, 16);
-    //void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
+  init_image(nx, ny, image, tmp_image);
 
-    init_image(nx, ny, image, tmp_image);
-    
-    float val2 = image[200];
-    printf("VALUE: %f\n", val2);
-    
-  
-  
-  if (rank == 0) {
-    float val2 = image[0];
-    printf("VALUE outside init: %f\n", val2);
-  }
-  
-  
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
@@ -145,15 +123,14 @@ int main(int argc, char *argv[]) {
     for (int j = 0; j < localNRows; j++) {
       for (int i = 0; i < localNCols; i++) {
         val = image[(j * localNCols) + i];
-	//printf("val: %2f\n", val);
-	//grid[i][j] = image[(j * localNCols) + i];
-	//printf("j = %d, i = %d", j, i);
+      	grid[i][j] = val;
       }
     }
     printf("rank 0 populated local grid\n");
   }
 
-  printf("process %d is here\n", rank);
+  if (rank == 0)
+    printf("grid height: %d, grid width: %d", localNRows, localNCols);
 
   // TO DO
   // MASTER rank will have whole image before dishing it out to
@@ -189,9 +166,9 @@ int main(int argc, char *argv[]) {
   MPI_Finalize();
 
   _mm_free(image);
-  
-  printf("FINISH");
-  
+
+  if (rank == 0) printf("FINISH SUCCESS\n");
+
   return EXIT_SUCCESS;
 }
 
