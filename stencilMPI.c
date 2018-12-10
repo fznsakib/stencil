@@ -80,12 +80,17 @@ int main(int argc, char *argv[]) {
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
-  // Whole image
-  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  // Set the input image for rank 0 only
+  if (rank == 0) {
+    float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
+    float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
 
-  void *imageP = __builtin_assume_aligned(image, 16);
-  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
+    void *imageP = __builtin_assume_aligned(image, 16);
+    void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
+
+    init_image(nx, ny, image, tmp_image);
+  }
+
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
@@ -107,13 +112,18 @@ int main(int argc, char *argv[]) {
   remoteNRows = calculateRows(size-1, size, ny);
   printBuf = (double*)malloc(sizeof(double) * (remoteNRows + 2));
 
+
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
-  // Set the input image for rank 0 only
+  // Populate local grid for rank 0
   if (rank == 0) {
-    init_image(nx, ny, image, tmp_image);
+    for (int j = 0; j < localNRows; j++) {
+      for (int i = 0; i < localNCols; i++) {
+        grid[(j * localNCols) + i] = image[(j * localNCols) + i];
+      }
+    }
   }
-
+  
   // TO DO
   // MASTER rank will have whole image before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most
