@@ -16,7 +16,7 @@
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
-int calculateRows(int rank, int size, int nx);
+int calculateRows(int rank, int size, int ny);
 double wtime(void);
 
 int main(int argc, char *argv[]) {
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
   MPI_Status status;     /* struct used by MPI_Recv */
   int localNRows;        /* number of rows apportioned to this rank */
   int localNCols;        /* number of columns apportioned to this rank */
-  int remoteNCols;       /* number of columns apportioned to a remote rank */
+  int remoteNRows;       /* number of columns apportioned to a remote rank */
   double *grid;          /* local stencil grid at iteration t - 1 */
   double *newGrid;       /* local stencil grid at iteration t */
   double *sendBuf;       /* buffer to hold values to send */
@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
 
   // Determine local grid size. Columns will be the same for all process ranks.
   // Rows may be different
-  localNRows = calculateRows(rank, size, nx);
-  localNCols = ny;
+  localNRows = calculateRows(rank, size, ny);
+  localNCols = nx;
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
-  remoteNCols = calculateCols(size-1, size, nx);
+  remoteNRows = calculateRows(size-1, size, ny);
   printBuf = (double*)malloc(sizeof(double) * (remoteNCols + 2));
 
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
@@ -134,6 +134,7 @@ int main(int argc, char *argv[]) {
 
   // TO DO
   // Get all local grids from nodes and produce final image
+
 
 
   ////////////////////////////////// OUTPUT /////////////////////////////////////
