@@ -143,10 +143,10 @@ int main(int argc, char *argv[]) {
       }
     }
     printf("final rank populated local grid\n");
-  }
+   }
 
-  if (rank == 0)
-    printf("grid height: %d, grid width: %d\n", localNRows, localNCols);
+  //if (rank == 0)
+  //printf("grid height: %d, grid width: %d\n", localNRows, localNCols);
 
   // TO DO
   // MASTER rank will have whole image before dishing it out to
@@ -178,12 +178,18 @@ int main(int argc, char *argv[]) {
 
     output_image(OUTPUT_FILE, nx, ny, image);
   }
+  
+  //printf("Process %d has reached here\n", rank);
 
+  //free(image);
+  
+  printf("Process %d has reached here right before finalisation\n", rank);
+  
   MPI_Finalize();
 
-  _mm_free(image);
-
-  if (rank == 0) printf("FINISH SUCCESS\n");
+  //if (rank == 0) printf("FINISH SUCCESS\n");
+  
+  //printf("Process %d has reached here after finalisation\n", rank);
 
   return EXIT_SUCCESS;
 }
