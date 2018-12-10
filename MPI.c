@@ -118,19 +118,35 @@ int main(int argc, char *argv[]) {
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
   // Populate local grid for rank 0
+  float val;
   if (rank == 0) {
-    float val;
-    for (int j = 0; j < localNRows; j++) {
-      for (int i = 0; i < localNCols; i++) {
-        val = image[(j * localNCols) + i];
+    for (int i = 0; i < localNRows; i++) {
+      for (int j = 0; j < localNCols; j++) {
+        val = image[(i * localNCols) + j];
       	grid[i][j] = val;
+        newGrid[i][j] = 0.0;
       }
     }
     printf("rank 0 populated local grid\n");
   }
+  // Populate local grid for last rank
+  // Start from 2nd row
+
+  //1024 / 4 * (4-1)
+  else if (rank == size - 1) {
+    int base = ((ny / size) * (size - 1)) - 1;
+    for (int i = 1; i < localNRows + 1; i++) {
+      for (int j = 0; j < localNCols; j++) {
+        val = image[base + ((i * localNCols) + j)];
+      	grid[i][j] = val;
+        newGrid[i][j] = 0.0;
+      }
+    }
+    printf("final rank populated local grid\n");
+  }
 
   if (rank == 0)
-    printf("grid height: %d, grid width: %d", localNRows, localNCols);
+    printf("grid height: %d, grid width: %d\n", localNRows, localNCols);
 
   // TO DO
   // MASTER rank will have whole image before dishing it out to
