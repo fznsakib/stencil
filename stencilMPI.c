@@ -16,7 +16,7 @@
 void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
-int calculateCols(int rank, int size, int ny);
+int calculateRows(int rank, int size, int nx);
 double wtime(void);
 
 int main(int argc, char *argv[]) {
@@ -57,6 +57,11 @@ int main(int argc, char *argv[]) {
     init_image(nx, ny, image, tmp_image);
   }
 
+  // TO DO
+  // MASTER rank will have whole image before dishing it out to
+  // the other ranks. MASTER rank will then be left with top-most
+  // row
+
   double tic = wtime();
 
   // Call the stencil kernel
@@ -66,6 +71,9 @@ int main(int argc, char *argv[]) {
   }
 
   double toc = wtime();
+
+  // TO DO
+  // Get all local grids from nodes and produce final image
 
   if (rank == 0) {
     // Output
@@ -127,8 +135,8 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
   // Determine local grid size. Rows will be the same for all process ranks.
   // Columns may be different
-  localNRows = nx;
-  localNCols = calculateCols(rank, size, ny);
+  localNRows = calculateRows(rank, size, nx);
+  localNCols = ny;
 
   // Allocate memory for the local grid with 2 extra columns for halos
   // Two grids for previous and current iteration
@@ -148,7 +156,7 @@ void stencil(const int nx, const int ny, float * restrict image, float * restric
 
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
-  remoteNCols = calculateCols(size-1, size);
+  remoteNCols = calculateCols(size-1, size, nx);
   printBuf = (double*)malloc(sizeof(double) * (remoteNCols + 2));
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
@@ -319,15 +327,15 @@ double wtime(void) {
   return tv.tv_sec + tv.tv_usec*1e-6;
 }
 
-// Calculate the number of columns for the specified process rank
-int calculateCols(int rank, int size, int ny) {
-  int ncols;
+// Calculate the number of rows for the specified process rank
+int calculateRows(int rank, int size, int nx) {
+  int nrows;
 
-  ncols = ny / size;       /* integer division */
-  if ((ny % size) != 0) {  /* if there is a remainder */
+  nrows = nx / size;       /* integer division */
+  if ((nx % size) != 0) {  /* if there is a remainder */
     if (rank == size - 1)
-      ncols += ny % size;  /* add remainder to last rank */
+      nrows += nx % size;  /* add remainder to last rank */
   }
 
-  return ncols;
+  return nrows;
 }
