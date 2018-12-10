@@ -333,13 +333,13 @@ double wtime(void) {
 }
 
 // Calculate the number of rows for the specified process rank
-int calculateRows(int rank, int size, int nx) {
+int calculateRows(int rank, int size, int ny) {
   int nrows;
 
-  nrows = nx / size;       /* integer division */
-  if ((nx % size) != 0) {  /* if there is a remainder */
+  nrows = ny / size;       /* integer division */
+  if ((ny % size) != 0) {  /* if there is a remainder */
     if (rank == size - 1)
-      nrows += nx % size;  /* add remainder to last rank */
+      nrows += ny % size;  /* add remainder to last rank */
   }
 
   return nrows;
