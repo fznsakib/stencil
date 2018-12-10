@@ -90,12 +90,12 @@ int main(int argc, char *argv[]) {
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
-    grid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
-    newGrid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
+    grid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
+    newGrid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (1*localNCols));
   }
   else {
-    grid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
-    newGrid = (double**)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
+    grid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
+    newGrid = (double*)malloc(sizeof(double*) * (localNCols*localNRows) + (2*localNCols));
   }
 
   // Buffers for message passing
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
   remoteNRows = calculateRows(size-1, size, ny);
-  printBuf = (double*)malloc(sizeof(double) * (remoteNCols + 2));
+  printBuf = (double*)malloc(sizeof(double) * (remoteNRows + 2));
 
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
