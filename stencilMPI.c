@@ -49,6 +49,10 @@ int main(int argc, char *argv[]) {
   int remoteNRows;       /* number of columns apportioned to a remote rank */
   double *grid;          /* local stencil grid at iteration t - 1 */
   double *newGrid;       /* local stencil grid at iteration t */
+  float  *image;         /* images and pointers to images */
+  float  *tmp_image;
+  void   *imageP;
+  void   *tmp_imageP;
   double *sendBuf;       /* buffer to hold values to send */
   double *recvBuf;       /* buffer to hold received values */
   double *printBuf;      /* buffer to hold values for printing */
@@ -91,7 +95,6 @@ int main(int argc, char *argv[]) {
     init_image(nx, ny, image, tmp_image);
   }
 
-
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
@@ -119,11 +122,11 @@ int main(int argc, char *argv[]) {
   if (rank == 0) {
     for (int j = 0; j < localNRows; j++) {
       for (int i = 0; i < localNCols; i++) {
-        grid[(j * localNCols) + i] = image[(j * localNCols) + i];
+        grid[(j * localNCols) + i] = imageP[(j * localNCols) + i];
       }
     }
   }
-  
+
   // TO DO
   // MASTER rank will have whole image before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most
