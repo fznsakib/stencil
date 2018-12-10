@@ -5,7 +5,7 @@
 #include "mpi.h"
 
 // Define output file name
-#define OUTPUT_FILE "stencilMPI.pgm"
+#define OUTPUT_FILE "MPI.pgm"
 #define MASTER 0
 #define NROWS 4
 #define NCOLS 16
@@ -49,10 +49,10 @@ int main(int argc, char *argv[]) {
   int remoteNRows;       /* number of columns apportioned to a remote rank */
   float *grid;          /* local stencil grid at iteration t - 1 */
   float *newGrid;       /* local stencil grid at iteration t */
-  float  *image;         /* images and pointers to images */
-  float  *tmp_image;
-  void   *imageP;
-  void   *tmp_imageP;
+  float *image;         /* images and pointers to images */
+  float *tmp_image;
+  void  *imageP;
+  void  *tmp_imageP;
   float *sendBuf;       /* buffer to hold values to send */
   float *recvBuf;       /* buffer to hold received values */
   float *printBuf;      /* buffer to hold values for printing */
@@ -86,8 +86,8 @@ int main(int argc, char *argv[]) {
 
   // Set the input image for rank 0 only
   if (rank == 0) {
-    float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-    float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+    float image = _mm_malloc(sizeof(float)*nx*ny, 64);
+    float tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
 
     void *imageP = __builtin_assume_aligned(image, 16);
     void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
     grid = malloc(sizeof(float*) * (localNCols*localNRows) + (2*localNCols));
     newGrid = malloc(sizeof(float*) * (localNCols*localNRows) + (2*localNCols));
   }
-
+  
   // Buffers for message passing
   sendBuf = malloc(sizeof(float) * localNCols);
   recvBuf = malloc(sizeof(float) * localNCols);
@@ -115,18 +115,21 @@ int main(int argc, char *argv[]) {
   remoteNRows = calculateRows(size-1, size, ny);
   printBuf = malloc(sizeof(float) * (remoteNRows + 2));
 
-
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
   // Populate local grid for rank 0
   if (rank == 0) {
     for (int j = 0; j < localNRows; j++) {
       for (int i = 0; i < localNCols; i++) {
-        grid[(j * localNCols) + i] = imageP[(j * localNCols) + i];
+	printf("j = %d, i = %d", j, i);
+        grid[(j * localNCols) + i] = image[(j * localNCols) + i];
       }
     }
+    printf("rank 0 populated local grid\n");
   }
 
+  printf("process %d is here 2\n", rank);
+  
   // TO DO
   // MASTER rank will have whole image before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most
@@ -136,10 +139,10 @@ int main(int argc, char *argv[]) {
 
   double tic = wtime();
 
-  for (int t = 0; t < niters; ++t) {
-    stencil(nx, ny, imageP, tmp_imageP);
-    stencil(nx, ny, tmp_imageP, imageP);
-  }
+  //for (int t = 0; t < niters; ++t) {
+  //  stencil(nx, ny, imageP, tmp_imageP);
+  //  stencil(nx, ny, tmp_imageP, imageP);
+  //}
 
   double toc = wtime();
 

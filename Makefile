@@ -1,2 +1,2 @@
-stencilMPI: stencilMPI.c
+MPI: MPI.c
 	mpicc -std=c99 -Wall -Wno-unused-variable $^ -Ofast -march=native -o $@

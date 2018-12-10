@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PBS -N stencilMPI
+#PBS -N MPI
 #PBS -o OUT
 #PBS -q teaching
 #PBS -l nodes=1:ppn=4,walltime=00:01:00
@@ -9,7 +9,7 @@
 #PBS -m a
 
 #! application name
-application="stencilMPI"
+application="MPI"
 
 #! Run options for the application
 options1="1024 1024 10"
