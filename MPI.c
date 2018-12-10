@@ -84,8 +84,6 @@ int main(int argc, char *argv[]) {
   float *image = malloc(sizeof(float)*nx*ny);
   float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-  init_image(nx, ny, image, tmp_image);
-
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
   if (rank == 0 || rank == size - 1) {
@@ -117,6 +115,7 @@ int main(int argc, char *argv[]) {
 
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
+  /*
   // Populate local grid for rank 0
   // float val;
   // if (rank == 0) {
@@ -139,19 +138,21 @@ int main(int argc, char *argv[]) {
   //     }
   //   }
   //   printf("final rank populated local grid\n");
-  //  }  
+  //  }
    // Populate local grid for last rank
    // Start from 2nd row
 
    //1024 / 4 * (4-1)
-
-  //if (rank == 0)
-  //printf("grid height: %d, grid width: %d\n", localNRows, localNCols);
+   */
 
   // TO DO
-  // MASTER rank will have whole image before dishing it out to
-  // the other ranks. MASTER rank will then be left with top-most
-  // row
+  // MASTER rank will have whole image initialised before dishing it out to
+  // the other ranks. MASTER rank will then be left with top-most row
+
+  if (rank == 0) {
+    init_image(nx, ny, image, tmp_image);
+
+  }
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
 
@@ -187,9 +188,7 @@ int main(int argc, char *argv[]) {
 
   MPI_Finalize();
 
-  //if (rank == 0) printf("FINISH SUCCESS\n");
-
-  //printf("Process %d has reached here after finalisation\n", rank);
+  if (rank == 0) printf("FINISH SUCCESS\n");
 
   return EXIT_SUCCESS;
 }
