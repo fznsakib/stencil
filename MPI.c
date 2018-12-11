@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
   // Rows may be different
   localNRows = calculateRows(rank, size, ny);
   localNCols = nx;
-  
+
   printf("Local Rows: %d, Local Cols: %d\n", localNRows, localNCols);
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
@@ -88,23 +88,20 @@ int main(int argc, char *argv[]) {
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
-  if (rank == 0 || rank == size - 1) {
-    grid = (float**)malloc(sizeof(float*) * localNCols);
-    newGrid = (float**)malloc(sizeof(float*) * localNCols);
+  grid = (float**)malloc(sizeof(float*) * localNCols);
+  newGrid = (float**)malloc(sizeof(float*) * localNCols);
 
-    for (ii = 0; ii < localNCols; ii++) {
+  for (ii = 0; ii < localNCols; ii++) {
+    if (rank == 0 || rank == size - 1) {
       grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
       newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
     }
-  }
-  else {
-    grid = (float**)malloc(sizeof(float*) * localNCols);
-    newGrid = (float**)malloc(sizeof(float*) * localNCols);
-    for (ii = 0; ii < localNCols; ii++) {
+    else {
       grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
       newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
     }
   }
+
 
   // Buffers for message passing
   sendBuf = (float*)malloc(sizeof(float) * localNCols);
@@ -158,12 +155,12 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
         //printf("i = %d, j = %d\n", i, j);
-	val = image[(i * localNCols) + j];
+	      val = image[(i * localNCols) + j];
       	//printf("Val found = %f\n", val);
-	grid[i][j] = val;
-	//printf("stored in grid = %f\n", grid[i][j]);
+	      grid[i][j] = val;
+	      //printf("stored in grid = %f\n", grid[i][j]);
         //newGrid[i][j] = 0.0;
-	//printf("stored in newGrid = %f\n", newGrid[i][j]);
+	      //printf("stored in newGrid = %f\n", newGrid[i][j]);
       }
     }
   }
@@ -179,7 +176,7 @@ int main(int argc, char *argv[]) {
 
   double toc = wtime();
 
-  ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
+  //////////////////////////////g STITCH UP IMAGE ////////////////////////////////
 
   // TO DO
   // Get all local grids from nodes and produce final image
@@ -196,9 +193,13 @@ int main(int argc, char *argv[]) {
 
   //printf("Process %d has reached here\n", rank);
 
-  free(image);
+  for(int i = 0; i < localNCols; i++){
+    free(grid[i]);
+    free(newGrid[i]);
+  }
   free(grid);
   free(newGrid);
+  free(image);
 
   printf("Process %d has reached here right before finalisation\n", rank);
 
