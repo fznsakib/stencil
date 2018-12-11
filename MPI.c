@@ -77,6 +77,8 @@ int main(int argc, char *argv[]) {
   // Rows may be different
   localNRows = calculateRows(rank, size, ny);
   localNCols = nx;
+  
+  printf("Local Rows: %d, Local Cols: %d\n", localNRows, localNCols);
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
@@ -151,13 +153,17 @@ int main(int argc, char *argv[]) {
 
   if (rank == 0) {
     init_image(nx, ny, image, tmp_image);
-
+    float val;
     // Initialise MASTER rank local grid
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-        val = image[(i * localNCols) + j];
-      	grid[i][j] = val;
-        newGrid[i][j] = 0.0;
+        //printf("i = %d, j = %d\n", i, j);
+	val = image[(i * localNCols) + j];
+      	//printf("Val found = %f\n", val);
+	grid[i][j] = val;
+	//printf("stored in grid = %f\n", grid[i][j]);
+        //newGrid[i][j] = 0.0;
+	//printf("stored in newGrid = %f\n", newGrid[i][j]);
       }
     }
   }
@@ -190,7 +196,9 @@ int main(int argc, char *argv[]) {
 
   //printf("Process %d has reached here\n", rank);
 
-  //free(image);
+  free(image);
+  free(grid);
+  free(newGrid);
 
   printf("Process %d has reached here right before finalisation\n", rank);
 
