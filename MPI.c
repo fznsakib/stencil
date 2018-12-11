@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
   int localNCols;        /* width of this rank */
   int remoteNRows;       /* number of columns apportioned to a remote rank */
 
-  float *image;
-  float *tmp_image;
+  //float *image;
+  //float *tmp_image;
 
   float *localImage;          /* local stencil grid at iteration t - 1 */
   float *tmp_localImage;       /* local stencil grid at iteration t */
@@ -89,44 +89,28 @@ int main(int argc, char *argv[]) {
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
   // Set the input image
-  if (rank == MASTER) {
-    printf("Full image initialised in MASTER\n");
-    float *image = malloc(sizeof(float)*nx*ny);
-    float *tmp_image = malloc(sizeof(float)*nx*ny);
-  }
-
+  float *image = malloc(sizeof(float)*nx*ny);
+  float *tmp_image = malloc(sizeof(float)*nx*ny);
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
-  printf("Rank %d will operate on width:%d & height:%d\n", rank, localNCols, localNRows);
+  //printf("Rank %d will operate on width:%d & height:%d\n", rank, localNCols, localNRows);
 
   if (rank == 0 || rank == size-1) {
-    localImage = malloc(sizeof(float) * ((localNCols * localNRows) + localNCols);
-    printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + localNCols));
+    localImage = malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
+    //printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + localNCols));
   }
   else {
-    tmp_localImage = malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols));
-    printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + (2 * localNCols));
+    tmp_localImage = malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
+    //printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + (2 * localNCols)));
   }
-
-  /*
-  for (ii = 0; ii < localNCols; ii++) {
-    if (rank == 0 || rank == size - 1) {
-      localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
-      tmp_localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
-    }
-  else {
-    localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
-    tmp_localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
-   }
- }*/
 
   // Buffers for message passing
   sendBuf = (float*)malloc(sizeof(float) * localNCols);
   recvBuf = (float*)malloc(sizeof(float) * localNCols);
 
-  sendBuf[0][0] = 1;
-  printf("SendBuffer[0][0] = %f\n", sendBuf[0][0]);
+  //sendBuf[0][0] = 1;
+  //printf("SendBuffer[0][0] = %f\n", sendBuf[0][0]);
 
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
@@ -140,9 +124,13 @@ int main(int argc, char *argv[]) {
   // the other ranks. MASTER rank will then be left with top-most row
 
   if (rank == MASTER) {
+    init_image(nx, ny, image, tmp_image);
+    printf("image[10] = %f\n", image[10]);
+
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-        localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
+	localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
+	printf("i = %d, j = %d, val = %f\n", i, j, localImage[(i * localNCols) + j]);
       }
     }
     printf("Rank 0: Local image initialised\n");
@@ -199,13 +187,9 @@ int main(int argc, char *argv[]) {
 
   MPI_Finalize();
 
-  for(int i = 0; i < localNCols; i++){
-    free(localImage[i]);
-    free(tmp_localImage[i]);
-  }
   free(localImage);
   free(tmp_localImage);
-  free(image);
+  if (rank == 0) free(image);
 
   if (rank == 0) printf("FINISH SUCCESS\n");
 
