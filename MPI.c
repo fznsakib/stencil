@@ -194,21 +194,37 @@ int main(int argc, char *argv[]) {
     }
   }*/
 
-
-  // Sending down, receiving from below
+  // Sending down, receiving from up
   int sendRow;
   if (rank == MASTER) sendRow = (localNRows * localNCols) - localNCols;
   else if (rank == size - 1) sendRow = 0; // Not sending down from last rank
   else sendRow = (localNRows * localNCols);
 
   for(int j = 0; j < localNCols; j++)
-      sendbuf[j] = localImage[baseRow + j];
+      sendBuf[j] = localImage[sendRow + j];
 
-  MPI_Sendrecv(sendbuf, sizeof(sendBuf) + 1, MPI_FLOAT, down, tag,
-	             recvbuf, sizeof(sendBuf) + 1, MPI_FLOAT, up, tag,
+  MPI_Sendrecv(sendBuf, sizeof(sendBuf) + 1, MPI_FLOAT, down, tag,
+	             recvBuf, sizeof(sendBuf) + 1, MPI_FLOAT, up, tag,
 	             MPI_COMM_WORLD, &status);
 
-  int recvRow;
+  int recvRow = 0;
+
+  for(int j = 0; j < localNCols; j++) {
+    // If master rank, then don't assign buffer to localImage
+    if (rank != MASTER)
+      localImage[j] = recvBuf[j];
+  }
+
+  // Sending up, receiving from down
+  if (rank != MASTER) sendRow = localNCols;
+
+  for(int j = 0; j < localNCols; j++)
+      sendBuf[j] = localImage[sendRow + j];
+
+  MPI_Sendrecv(sendBuf, sizeof(sendBuf) + 1, MPI_FLOAT, up, tag,
+	             recvBuf, sizeof(sendBuf) + 1, MPI_FLOAT, down, tag,
+	             MPI_COMM_WORLD, &status);
+
   if (rank == MASTER) recvRow = localNRows * localNCols;
   else if (rank == size - 1) recvRow = 0; // Not receiving from below last rank
   else recvRow = (localNRows * localNCols) + localNCols;
@@ -216,12 +232,8 @@ int main(int argc, char *argv[]) {
   for(int j = 0; j < localNCols; j++) {
     // If last rank, then don't assign buffer to localImage
     if (rank != size - 1)
-      localImage[recvRow + j] = recvbuf[j];
+      localImage[recvRow + j] = recvBuf[j];
   }
-
-
-  /* send above, receive from below */
-
 
 
 
