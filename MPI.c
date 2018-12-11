@@ -49,11 +49,8 @@ int main(int argc, char *argv[]) {
   int localNCols;        /* width of this rank */
   int remoteNRows;       /* number of columns apportioned to a remote rank */
 
-  //float *image;
-  //float *tmp_image;
-
-  float *localImage;          /* local stencil grid at iteration t - 1 */
-  float *tmp_localImage;       /* local stencil grid at iteration t */
+  float *localImage;     /* local stencil grid at iteration t - 1 */
+  float *tmp_localImage; /* local stencil grid at iteration t */
 
   float *sendBuf;        /* buffer to hold values to send */
   float *recvBuf;        /* buffer to hold received values */
@@ -67,7 +64,7 @@ int main(int argc, char *argv[]) {
   if (flag != 1) {
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
-  
+
 
   // Get size and rank to identify process
   MPI_Comm_size( MPI_COMM_WORLD, &size );
@@ -78,7 +75,8 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER) up = size - 1;
   else                up = rank - 1;
 
-  down = (rank + 1) % size;
+  if (rank == size - 1) down = 0;
+  else                  down = rank + 1;
 
   // Determine local grid size. Columns will be the same for all process ranks.
   // Rows may be different
@@ -93,8 +91,6 @@ int main(int argc, char *argv[]) {
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
-
-  //printf("Rank %d will operate on width:%d & height:%d\n", rank, localNCols, localNRows);
 
   if (rank == 0 || rank == size-1) {
     localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
@@ -130,7 +126,6 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
 	       localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
-	       // printf("i = %d, j = %d, val = %f\n", i, j, localImage[(i * localNCols) + j]);
       }
     }
     printf("Rank 0: Local image initialised\n");
@@ -141,13 +136,12 @@ int main(int argc, char *argv[]) {
       int baseRow = (nx * ny) * (k / size);
       int rankLocalRows = localNRows;
       float val;
-      if (k == size - 1) {
-        rankLocalRows = calculateRows(size-1, size, ny);
-      }
+      if (k == size - 1) rankLocalRows = calculateRows(size-1, size, ny);
+
       for (int i = 0; i < rankLocalRows; i++) {
         for (int j = 0; j < localNCols; j++ ) {
-	  val = image[baseRow + j];
-	  sendBuf[i] = val;
+	         val = image[baseRow + j];
+	         sendBuf[i] = val;
         }
         MPI_Ssend(sendBuf,sizeof(sendBuf)+1, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
@@ -158,29 +152,77 @@ int main(int argc, char *argv[]) {
   if (rank != MASTER) {
     int rowBoundary = localNRows + 1;
     if (rank == size - 1) rowBoundary = localNRows;
-    for (int i = 1; i < localNRows + 1; i++) {
+    for (int i = 1; i < rowBoundary; i++) {
       MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
-	//if (rank == 1) printf("buffer val = %f\n", recvBuf[j]);
         localImage[(i * localNCols) + j] = recvBuf[j];
-	//if (rank == 1) printf("localImage val = %f\n", localImage[(i * localNCols) + j]);
       }
     }
     printf("Rank %d: Local image initialised\n", rank);
   }
-  
-  //printf("Rank %d's local image val: %f\n", rank, localImage[2 * localNCols]);
 
-  if (rank == 3) {
+  /*if (rank == 3) {
     for (int i = 1; i < localNRows + 1; i++) {
       for (int j = 0; j < localNCols; j++) {
   	printf("At i = %d, j = %d: val = %f\n", i, j, localImage[(i * localNCols) + j]);
      }
    }
+ }*/
+
+  // TO DO
+  // Communicate between ranks to distribute halos
+
+  /* Ssend then sendRecv
+  // Send last row from rank 0 to rank 1
+  if (rank == MASTER) {
+    // Send last row in rank 0
+    int baseRow = (localNRows * localNCols) - localNCols;
+    int rankLocalRows = localNRows;
+    float val;
+    for (int j = 0; j < localNCols; j++ ) {
+       val = localImage[baseRow + j];
+       sendBuf[i] = val;
+    }
+    MPI_Ssend(sendBuf,sizeof(sendBuf) + 1, MPI_FLOAT, down, tag, MPI_COMM_WORLD);
   }
 
-  // TO do
-  // Communicate between ranks to distribute halos
+  // Receive row from rank 0 at rank 1
+  if (rank == 1) {
+    MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
+    for (int j = 0; j < localNCols; j++ ) {
+       localImage[j] = recvBuf[j];
+    }
+  }*/
+
+
+  // Sending down, receiving from below
+  int sendRow;
+  if (rank == MASTER) sendRow = (localNRows * localNCols) - localNCols;
+  else if (rank == size - 1) sendRow = 0; // Not sending down from last rank
+  else sendRow = (localNRows * localNCols);
+
+  for(int j = 0; j < localNCols; j++)
+      sendbuf[j] = localImage[baseRow + j];
+
+  MPI_Sendrecv(sendbuf, sizeof(sendBuf) + 1, MPI_FLOAT, down, tag,
+	             recvbuf, sizeof(sendBuf) + 1, MPI_FLOAT, up, tag,
+	             MPI_COMM_WORLD, &status);
+
+  int recvRow;
+  if (rank == MASTER) recvRow = localNRows * localNCols;
+  else if (rank == size - 1) recvRow = 0; // Not receiving from below last rank
+  else recvRow = (localNRows * localNCols) + localNCols;
+
+  for(int j = 0; j < localNCols; j++) {
+    // If last rank, then don't assign buffer to localImage
+    if (rank != size - 1)
+      localImage[recvRow + j] = recvbuf[j];
+  }
+
+
+  /* send above, receive from below */
+
+
 
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
@@ -194,7 +236,7 @@ int main(int argc, char *argv[]) {
 
   double toc = wtime();
 
-  //////////////////////////////g STITCH UP IMAGE ////////////////////////////////
+  ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
 
   // TO DO
   // Get all local grids from nodes and produce final image
