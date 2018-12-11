@@ -13,7 +13,10 @@
 #define ITERS 18
 #define MASTER 0
 
-void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
+void stencil(const int nx, const int ny, float * restrict localImage,
+             float * restrict tmp_localImage, int rank, int size, int up,
+             int down, int localNRows, int localNCols,
+             float * restrict sendBuf, float * restrict recvBuf);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
 int calculateRows(int rank, int size, int ny);
@@ -33,11 +36,8 @@ int main(int argc, char *argv[]) {
   int niters = atoi(argv[3]);
 
   ////////////////////////////// MPI VARIABLES /////////////////////////////////
+
   int flag;
-  int ii,jj;             /* row and column indices for the grid */
-  int kk;                /* index for looping over ranks */
-  int startCol,endCol;   /* rank dependent looping indices */
-  int iterations;        /* index for timestep iterations */
   int rank;              /* the rank of this process */
   int size;              /* number of processes in the communicator */
   int up;                /* the rank of the process above */
@@ -112,9 +112,8 @@ int main(int argc, char *argv[]) {
   remoteNRows = calculateRows(size-1, size, ny);
   printBuf = (float*)malloc(sizeof(float) * (remoteNRows + 2));
 
-  ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
+  //////////////////////////// INITIALISE LOCAL IMAGES //////////////////////////
 
-  // TO DO
   // MASTER rank will have whole image initialised before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most row
 
@@ -161,38 +160,10 @@ int main(int argc, char *argv[]) {
     printf("Rank %d: Local image initialised\n", rank);
   }
 
-  /*if (rank == 3) {
-    for (int i = 1; i < localNRows + 1; i++) {
-      for (int j = 0; j < localNCols; j++) {
-  	printf("At i = %d, j = %d: val = %f\n", i, j, localImage[(i * localNCols) + j]);
-     }
-   }
- }*/
 
-  // TO DO
+  ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
+
   // Communicate between ranks to distribute halos
-
-  /* Ssend then sendRecv
-  // Send last row from rank 0 to rank 1
-  if (rank == MASTER) {
-    // Send last row in rank 0
-    int baseRow = (localNRows * localNCols) - localNCols;
-    int rankLocalRows = localNRows;
-    float val;
-    for (int j = 0; j < localNCols; j++ ) {
-       val = localImage[baseRow + j];
-       sendBuf[i] = val;
-    }
-    MPI_Ssend(sendBuf,sizeof(sendBuf) + 1, MPI_FLOAT, down, tag, MPI_COMM_WORLD);
-  }
-
-  // Receive row from rank 0 at rank 1
-  if (rank == 1) {
-    MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
-    for (int j = 0; j < localNCols; j++ ) {
-       localImage[j] = recvBuf[j];
-    }
-  }*/
 
   // Sending down, receiving from up
   int sendRow;
@@ -235,16 +206,19 @@ int main(int argc, char *argv[]) {
       localImage[recvRow + j] = recvBuf[j];
   }
 
+  ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
 
   double tic = wtime();
 
-  //for (int t = 0; t < niters; ++t) {
-  //  stencil(nx, ny, imageP, tmp_imageP);
-  //  stencil(nx, ny, tmp_imageP, imageP);
-  //}
+  for (int t = 0; t < niters; ++t) {
+    stencil(nx, ny, localImage, tmp_localImage, rank, size, up, down
+            localNRows, localNCols, sendBuf, recvBuf);
+    stencil(nx, ny, tmp_localImage, localImage, rank, size, up, down
+            localNRows, localNCols, sendBuf, recvBuf);
+  }
 
   double toc = wtime();
 
@@ -279,7 +253,10 @@ int main(int argc, char *argv[]) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void stencil(const int nx, const int ny, float * restrict image, float * restrict tmp_image) {
+void stencil(const int nx, const int ny, float * restrict localImage,
+             float * restrict tmp_localImage, int rank, int size, int up,
+             int down, int localNRows, int localNCols,
+             float * restrict sendBuf, float * restrict recvBuf) {
 
   ////////////////////////////// INITIALISATION /////////////////////////////////
 
