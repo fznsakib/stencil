@@ -84,8 +84,6 @@ int main(int argc, char *argv[]) {
   localNRows = calculateRows(rank, size, ny);
   localNCols = nx;
 
-  //printf("Local Rows: %d, Local Cols: %d\n", localNRows, localNCols);
-
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
   // Set the input image
@@ -94,6 +92,7 @@ int main(int argc, char *argv[]) {
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
+
   //printf("Rank %d will operate on width:%d & height:%d\n", rank, localNCols, localNRows);
 
   if (rank == 0 || rank == size-1) {
@@ -109,9 +108,6 @@ int main(int argc, char *argv[]) {
   sendBuf = (float*)malloc(sizeof(float) * localNCols);
   recvBuf = (float*)malloc(sizeof(float) * localNCols);
 
-  //sendBuf[0][0] = 1;
-  //printf("SendBuffer[0][0] = %f\n", sendBuf[0][0]);
-
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
   remoteNRows = calculateRows(size-1, size, ny);
@@ -124,37 +120,52 @@ int main(int argc, char *argv[]) {
   // the other ranks. MASTER rank will then be left with top-most row
 
   if (rank == MASTER) {
+    // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
-    printf("image[10] = %f\n", image[10]);
 
+    // Initialise local image in MASTER
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
-	printf("i = %d, j = %d, val = %f\n", i, j, localImage[(i * localNCols) + j]);
+	       localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
+	       // printf("i = %d, j = %d, val = %f\n", i, j, localImage[(i * localNCols) + j]);
       }
     }
     printf("Rank 0: Local image initialised\n");
-  }
 
-  /*if (rank == 0) {
-    printf("LOCAL ROWS: %d, LOCAL COLS: %d\n", localNRows, localNCols);
-    init_image(nx, ny, image, tmp_image);
-    float val;
-    // Initialise MASTER rank local grid
-    for (int i = 0; i < localNRows; i++) {
-      for (int j = 0; j < localNCols; j++) {
-        //printf("i = %d, j = %d\n", i, j);
-	      //val = image[(i * localNCols) + j];
-      	//printf("Val found = %f\n", val);
-	      localImage[i][j] = 0.5;
-	      //printf("grid[%d][%d] = %f\n", i, j, localImage[i][j]);
-        //printf("stored in grid = %f\n", localImage[i][j]);
-        //tmp_localImage[i][j] = 0.0;
-	      //printf("stored in tmp_localImage = %f\n", tmp_localImage[i][j]);
+    // Send local image to each rank
+    for (int k = 1; k < size; k++) {
+      // Find index where sending starts
+      int baseRow = (nx * ny) * (k / size));
+      int rankLocalRows = localNRows;
+      if (k == size - 1) {
+        rankLocalRows = calculateRows(size-1, size, ny);
+      }
+      for (int i = 0; i < rankLocalRows; i++) {
+        for (int j = 0; j < localNCols; j++ ) {
+          sendBuf[i] = image[baseRow + j];
+        }
+        MPI_Ssend(sendBuf,strlen(sendBuf)+1, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
     }
-    printf("FINISH: %f and RANK: %d\n", grid[10][10], rank);
-  }*/
+  }
+
+  // Receive image to current rank
+  if (rank != MASTER) {
+    int rowBoundary = localNRows + 1;
+    if (rank == size - 1) rowBoundary = localNRows;
+    for (int i = 1; i < localNRows + 1; i++) {
+      MPI_Recv(recvBuf, strlen(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
+      for (int j = 0; j < localNCols; j++) {
+        localImage[(i * localNCols) + j] = recvBuf[j];
+      }
+    }
+    printf("Rank %d: Local image initialised", rank);
+  }
+
+
+  // TO do
+  // Communicate between ranks to distribute halos
+
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
 
