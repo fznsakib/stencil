@@ -44,11 +44,17 @@ int main(int argc, char *argv[]) {
   int down;              /* the rank of the process below */
   int tag = 0;           /* scope for adding extra information to a message */
   MPI_Status status;     /* struct used by MPI_Recv */
-  int localNRows;        /* number of rows apportioned to this rank */
-  int localNCols;        /* number of columns apportioned to this rank */
+
+  int localNRows;        /* height of this rank */
+  int localNCols;        /* width of this rank */
   int remoteNRows;       /* number of columns apportioned to a remote rank */
-  float **grid;          /* local stencil grid at iteration t - 1 */
-  float **newGrid;       /* local stencil grid at iteration t */
+
+  float *image;
+  float *tmp_image;
+
+  float *localImage;          /* local stencil grid at iteration t - 1 */
+  float *tmp_localImage;       /* local stencil grid at iteration t */
+
   float *sendBuf;        /* buffer to hold values to send */
   float *recvBuf;        /* buffer to hold received values */
   float *printBuf;       /* buffer to hold values for printing */
@@ -83,29 +89,44 @@ int main(int argc, char *argv[]) {
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
   // Set the input image
-  float *image = malloc(sizeof(float)*nx*ny);
-  float *tmp_image = malloc(sizeof(float)*nx*ny);
+  if (rank == MASTER) {
+    printf("Full image initialised in MASTER\n");
+    float *image = malloc(sizeof(float)*nx*ny);
+    float *tmp_image = malloc(sizeof(float)*nx*ny);
+  }
+
 
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
-  grid = (float**)malloc(sizeof(float*) * localNCols);
-  newGrid = (float**)malloc(sizeof(float*) * localNCols);
+  printf("Rank %d will operate on width:%d & height:%d\n", rank, localNCols, localNRows);
 
-  for (ii = 0; ii < localNCols; ii++) {
-    if (rank == 0 || rank == size - 1) {
-      grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
-      newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
-    }
+  if (rank == 0 || rank == size-1) {
+    localImage = malloc(sizeof(float) * ((localNCols * localNRows) + localNCols);
+    printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + localNCols));
+  }
   else {
-    grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
-    newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
-   }
+    tmp_localImage = malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols));
+    printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + (2 * localNCols));
   }
 
+  /*
+  for (ii = 0; ii < localNCols; ii++) {
+    if (rank == 0 || rank == size - 1) {
+      localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
+      tmp_localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
+    }
+  else {
+    localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
+    tmp_localImage[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
+   }
+ }*/
 
   // Buffers for message passing
   sendBuf = (float*)malloc(sizeof(float) * localNCols);
   recvBuf = (float*)malloc(sizeof(float) * localNCols);
+
+  sendBuf[0][0] = 1;
+  printf("SendBuffer[0][0] = %f\n", sendBuf[0][0]);
 
   // The last rank has the most columns apportioned.
   // printBuf must be big enough to hold this number
@@ -114,43 +135,20 @@ int main(int argc, char *argv[]) {
 
   ////////////////////////////// INITIALISE IMAGE ///////////////////////////////
 
-  /*
-  // Populate local grid for rank 0
-  // float val;
-  // if (rank == 0) {
-  //   for (int i = 0; i < localNRows; i++) {
-  //     for (int j = 0; j < localNCols; j++) {
-  //       val = image[(i * localNCols) + j];
-  //     	grid[i][j] = val;
-  //       newGrid[i][j] = 0.0;
-  //     }
-  //   }
-  //   printf("rank 0 populated local grid\n");
-  // }
-  // else if (rank == size - 1) {
-  //   int base = ((ny / size) * (size - 1)) - 1;
-  //   for (int i = 1; i < localNRows + 1; i++) {
-  //     for (int j = 0; j < localNCols; j++) {
-  //       val = image[base + ((i * localNCols) + j)];
-  //     	grid[i][j] = val;
-  //       newGrid[i][j] = 0.0;
-  //     }
-  //   }
-  //   printf("final rank populated local grid\n");
-  //  }
-   // Populate local grid for last rank
-   // Start from 2nd row
-
-   //1024 / 4 * (4-1)
-   */
-
   // TO DO
   // MASTER rank will have whole image initialised before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most row
-  
-  //printf("size of grid: %ld\n", sizeof(grid)/sizeof(grid[0][0]));
 
-  if (rank == 0) {
+  if (rank == MASTER) {
+    for (int i = 0; i < localNRows; i++) {
+      for (int j = 0; j < localNCols; j++) {
+        localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
+      }
+    }
+    printf("Rank 0: Local image initialised\n");
+  }
+
+  /*if (rank == 0) {
     printf("LOCAL ROWS: %d, LOCAL COLS: %d\n", localNRows, localNCols);
     init_image(nx, ny, image, tmp_image);
     float val;
@@ -158,17 +156,17 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
         //printf("i = %d, j = %d\n", i, j);
-	//val = image[(i * localNCols) + j];
+	      //val = image[(i * localNCols) + j];
       	//printf("Val found = %f\n", val);
-	grid[i][j] = 0.5;
-	//printf("grid[%d][%d] = %f\n", i, j, grid[i][j]);
-        //printf("stored in grid = %f\n", grid[i][j]);
-        //newGrid[i][j] = 0.0;
-	//printf("stored in newGrid = %f\n", newGrid[i][j]);
+	      localImage[i][j] = 0.5;
+	      //printf("grid[%d][%d] = %f\n", i, j, localImage[i][j]);
+        //printf("stored in grid = %f\n", localImage[i][j]);
+        //tmp_localImage[i][j] = 0.0;
+	      //printf("stored in tmp_localImage = %f\n", tmp_localImage[i][j]);
       }
     }
     printf("FINISH: %f and RANK: %d\n", grid[10][10], rank);
-  }
+  }*/
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
 
@@ -192,28 +190,22 @@ int main(int argc, char *argv[]) {
     printf("------------------------------------\n");
     printf(" runtime: %lf s\n", toc-tic);
     printf("------------------------------------\n");
-    
-    printf("before output\n");
+
     output_image(OUTPUT_FILE, nx, ny, image);
-    printf("after output\n");
   }
 
-  if (rank == 0)
-   printf("MASTER has finised output\n");
-  
-  /*
-  for(int i = 0; i < localNCols; i++){
-    free(grid[i]);
-    free(newGrid[i]);
-  }
-  free(grid);
-  free(newGrid);
-  free(image);
-  */
 
   printf("Process %d has reached here right before finalisation\n", rank);
 
   MPI_Finalize();
+
+  for(int i = 0; i < localNCols; i++){
+    free(localImage[i]);
+    free(tmp_localImage[i]);
+  }
+  free(localImage);
+  free(tmp_localImage);
+  free(image);
 
   if (rank == 0) printf("FINISH SUCCESS\n");
 
