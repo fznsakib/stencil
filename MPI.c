@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
   localNRows = calculateRows(rank, size, ny);
   localNCols = nx;
 
-  printf("Local Rows: %d, Local Cols: %d\n", localNRows, localNCols);
+  //printf("Local Rows: %d, Local Cols: %d\n", localNRows, localNCols);
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
@@ -96,10 +96,10 @@ int main(int argc, char *argv[]) {
       grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
       newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 1));
     }
-    else {
-      grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
-      newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
-    }
+  else {
+    grid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
+    newGrid[ii] = (float*)malloc(sizeof(float) * (localNRows + 2));
+   }
   }
 
 
@@ -147,22 +147,27 @@ int main(int argc, char *argv[]) {
   // TO DO
   // MASTER rank will have whole image initialised before dishing it out to
   // the other ranks. MASTER rank will then be left with top-most row
+  
+  //printf("size of grid: %ld\n", sizeof(grid)/sizeof(grid[0][0]));
 
   if (rank == 0) {
+    printf("LOCAL ROWS: %d, LOCAL COLS: %d\n", localNRows, localNCols);
     init_image(nx, ny, image, tmp_image);
     float val;
     // Initialise MASTER rank local grid
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
         //printf("i = %d, j = %d\n", i, j);
-	      val = image[(i * localNCols) + j];
+	//val = image[(i * localNCols) + j];
       	//printf("Val found = %f\n", val);
-	      grid[i][j] = val;
-	      //printf("stored in grid = %f\n", grid[i][j]);
+	grid[i][j] = 0.5;
+	//printf("grid[%d][%d] = %f\n", i, j, grid[i][j]);
+        //printf("stored in grid = %f\n", grid[i][j]);
         //newGrid[i][j] = 0.0;
-	      //printf("stored in newGrid = %f\n", newGrid[i][j]);
+	//printf("stored in newGrid = %f\n", newGrid[i][j]);
       }
     }
+    printf("FINISH: %f and RANK: %d\n", grid[10][10], rank);
   }
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
@@ -187,12 +192,16 @@ int main(int argc, char *argv[]) {
     printf("------------------------------------\n");
     printf(" runtime: %lf s\n", toc-tic);
     printf("------------------------------------\n");
-
+    
+    printf("before output\n");
     output_image(OUTPUT_FILE, nx, ny, image);
+    printf("after output\n");
   }
 
-  //printf("Process %d has reached here\n", rank);
-
+  if (rank == 0)
+   printf("MASTER has finised output\n");
+  
+  /*
   for(int i = 0; i < localNCols; i++){
     free(grid[i]);
     free(newGrid[i]);
@@ -200,6 +209,7 @@ int main(int argc, char *argv[]) {
   free(grid);
   free(newGrid);
   free(image);
+  */
 
   printf("Process %d has reached here right before finalisation\n", rank);
 

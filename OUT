@@ -1,17 +1,18 @@
 Running on host node46-017
-Time is Tue Dec 11 12:19:26 GMT 2018
+Time is Tue Dec 11 13:10:08 GMT 2018
 Directory is /panfs/panasas01/cosc/ss16161/stencil
-PBS job ID is 7814128.master.cm.cluster
+PBS job ID is 7814442.master.cm.cluster
 This jobs runs on the following machines:
 node46-017
-Local Rows: 25, Local Cols: 100
+Process 1 has reached here right before finalisation
+Process 2 has reached here right before finalisation
+Process 3 has reached here right before finalisation
+LOCAL ROWS: 25, LOCAL COLS: 100
+FINISH: 0.500000 and RANK: 0
 ------------------------------------
  runtime: -0.000000 s
 ------------------------------------
-Local Rows: 25, Local Cols: 100
-Process 1 has reached here right before finalisation
-Local Rows: 25, Local Cols: 100
-Process 2 has reached here right before finalisation
-Local Rows: 25, Local Cols: 100
-Process 3 has reached here right before finalisation
+before output
+after output
+MASTER has finised output
 Process 0 has reached here right before finalisation
