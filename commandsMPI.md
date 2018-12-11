@@ -55,7 +55,14 @@ MPI_Recv(message, BUFSIZ, MPI_CHAR, source, tag, MPI_COMM_WORLD, &status);
 
 ### Send AND receive a pair of messages
 MPI_Sendrecv(sendbuf, strlen(sendbuf)+1, MPI_CHAR, left, tag,
-      recvbuf, BUFSIZ, MPI_CHAR, right, tag, MPI_COMM_WORLD, &status); 
+      recvbuf, BUFSIZ, MPI_CHAR, right, tag, MPI_COMM_WORLD, &status);
+
+int MPI_Sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                int dest, int sendtag,
+                void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                int source, int recvtag,
+                MPI_Comm comm, MPI_Status *status) **
+
 
 ### Finalise the MPI environment
 MPI_Finalize();

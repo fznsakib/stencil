@@ -151,6 +151,15 @@ int main(int argc, char *argv[]) {
 
   if (rank == 0) {
     init_image(nx, ny, image, tmp_image);
+
+    // Initialise MASTER rank local grid
+    for (int i = 0; i < localNRows; i++) {
+      for (int j = 0; j < localNCols; j++) {
+        val = image[(i * localNCols) + j];
+      	grid[i][j] = val;
+        newGrid[i][j] = 0.0;
+      }
+    }
   }
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
