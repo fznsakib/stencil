@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) {
   if (flag != 1) {
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
+  
 
   // Get size and rank to identify process
   MPI_Comm_size( MPI_COMM_WORLD, &size );
@@ -96,11 +97,13 @@ int main(int argc, char *argv[]) {
   //printf("Rank %d will operate on width:%d & height:%d\n", rank, localNCols, localNRows);
 
   if (rank == 0 || rank == size-1) {
-    localImage = malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
+    localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
+    tmp_localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
     //printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + localNCols));
   }
   else {
-    tmp_localImage = malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
+    localImage = (float*)malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
+    tmp_localImage = (float*)malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
     //printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + (2 * localNCols)));
   }
 
@@ -135,16 +138,18 @@ int main(int argc, char *argv[]) {
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
       // Find index where sending starts
-      int baseRow = (nx * ny) * (k / size));
+      int baseRow = (nx * ny) * (k / size);
       int rankLocalRows = localNRows;
+      float val;
       if (k == size - 1) {
         rankLocalRows = calculateRows(size-1, size, ny);
       }
       for (int i = 0; i < rankLocalRows; i++) {
         for (int j = 0; j < localNCols; j++ ) {
-          sendBuf[i] = image[baseRow + j];
+	  val = image[baseRow + j];
+	  sendBuf[i] = val;
         }
-        MPI_Ssend(sendBuf,strlen(sendBuf)+1, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
+        MPI_Ssend(sendBuf,sizeof(sendBuf)+1, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
     }
   }
@@ -154,14 +159,25 @@ int main(int argc, char *argv[]) {
     int rowBoundary = localNRows + 1;
     if (rank == size - 1) rowBoundary = localNRows;
     for (int i = 1; i < localNRows + 1; i++) {
-      MPI_Recv(recvBuf, strlen(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
+      MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
+	//if (rank == 1) printf("buffer val = %f\n", recvBuf[j]);
         localImage[(i * localNCols) + j] = recvBuf[j];
+	//if (rank == 1) printf("localImage val = %f\n", localImage[(i * localNCols) + j]);
       }
     }
-    printf("Rank %d: Local image initialised", rank);
+    printf("Rank %d: Local image initialised\n", rank);
   }
+  
+  //printf("Rank %d's local image val: %f\n", rank, localImage[2 * localNCols]);
 
+  if (rank == 3) {
+    for (int i = 1; i < localNRows + 1; i++) {
+      for (int j = 0; j < localNCols; j++) {
+  	printf("At i = %d, j = %d: val = %f\n", i, j, localImage[(i * localNCols) + j]);
+     }
+   }
+  }
 
   // TO do
   // Communicate between ranks to distribute halos
