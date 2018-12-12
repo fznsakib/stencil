@@ -209,6 +209,16 @@ int main(int argc, char *argv[]) {
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
 
+  if (rank != 0)
+    MPI_Send(tag, strlen(int) + 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
+
+  if (rank == 0) {
+    for (int k = 1; k < size; k++) {
+      MPI_Recv(tag, strlen(int) + 1, MPI_INT, k, tag, MPI_COMM_WORLD, &status);
+    }
+    printf("\nAll local images initialised. Time for stencil.\n\n");
+  }
+
   //////////////////////////////// CALL STENCIL /////////////////////////////////
 
   double tic = wtime();
