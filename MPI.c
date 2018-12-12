@@ -214,9 +214,9 @@ int main(int argc, char *argv[]) {
   double tic = wtime();
 
   for (int t = 0; t < niters; ++t) {
-    stencil(nx, ny, localImage, tmp_localImage, rank, size, up, down
+    stencil(nx, ny, localImage, tmp_localImage, rank, size, up, down,
             localNRows, localNCols, sendBuf, recvBuf);
-    stencil(nx, ny, tmp_localImage, localImage, rank, size, up, down
+    stencil(nx, ny, tmp_localImage, localImage, rank, size, up, down,
             localNRows, localNCols, sendBuf, recvBuf);
   }
 
@@ -271,28 +271,35 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
-  //#pragma ivdep
-  #pragma GCC ivdep
-  for (int j = 0; j < 1; ++j) {
+  /////////////////////////// (MASTER RANK ONLY) /////////////////////////////////
 
-    // top left
-    tmp_image[j] = (image[j]     * centreWeighting) +
-                   (image[j + 1] + image[j + nx])   * neighbourWeighting;
-    //#pragma ivdep
+  if (rank == MASTER) {
     #pragma GCC ivdep
-    for (int i = 1; i < nx - 1; ++i) {
+    for (int j = 0; j < 1; ++j) {
 
-      // middle
-    tmp_image[i] = (image[i]       * centreWeighting)    +
-                   (image[i - 1] + image[i + 1] + image[i + nx])  * neighbourWeighting;
+      // top left
+      tmp_localImage[j] = (localImage[j]     * centreWeighting) +
+                          (localImage[j + 1] + localImage[j + localNCols])
+                          * neighbourWeighting;
+      //#pragma ivdep
+      #pragma GCC ivdep
+      for (int i = 1; i < localNCols - 1; ++i) {
+
+        // middle
+      tmp_localImage[i] = (localImage[i]       * centreWeighting)    +
+                          (localImage[i - 1] + localImage[i + 1] + localImage[i + localNCols])
+                          * neighbourWeighting;
+      }
+
+      // top right (coordinate = localNCols - 1)
+
+      tmp_localImage[(localNCols - 1)] = (localImage[(localNCols - 1)]       * centreWeighting)    +
+                                         (localImage[(localNCols - 1) - 1]  + localImage[(localNCols - 1) + localNCols])
+                                         * neighbourWeighting;
+
     }
-
-    // top right (coordinate = nx - 1)
-
-    tmp_image[(nx - 1)] = (image[(nx - 1)]       * centreWeighting)    +
-                          (image[(nx - 1) - 1]  + image[(nx - 1) + nx])  * neighbourWeighting;
-
   }
+
 
   //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
 
