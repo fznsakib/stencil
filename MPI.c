@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    output_image("MASTERINIT.pgm", localNCols, localNRows + 2, localImage);
+    output_image("MASTERINIT.pgm", localNCols, localNRows + 1, localImage);
 
     //printf("Rank 0: Local image initialised\n");
 
@@ -156,6 +156,8 @@ int main(int argc, char *argv[]) {
     }
     //printf("Rank %d: Local image initialised\n", rank);
   }
+
+  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
 
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
