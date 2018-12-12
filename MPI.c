@@ -60,7 +60,6 @@ int main(int argc, char *argv[]) {
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
 
-
   // Get size and rank to identify process
   MPI_Comm_size( MPI_COMM_WORLD, &size );
   MPI_Comm_rank( MPI_COMM_WORLD, &rank );
@@ -88,12 +87,13 @@ int main(int argc, char *argv[]) {
   // Two grids for previous and current iteration
 
   if (rank == 0 || rank == size-1) {
-    localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
-    tmp_localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
+    //printf("Rank: %d, local image memory allocated\n", rank);
+    localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
+    tmp_localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
   }
   else {
-    localImage = (float*)malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
-    tmp_localImage = (float*)malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
+    localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows + 2));
+    tmp_localImage = (float*)malloc(sizeof(float)* localNCols * (localNCols + 2));
   }
 
   // Buffers for message passing
@@ -113,17 +113,23 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER) {
     // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
+    
+    output_image("INIT.pgm", nx, ny, image);
 
-    // Initialise local image in MASTER
+    printf("Rank 0: Before local image initialisation\n");
+    
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	       localImage[(i * localNCols) + j] = image[(i * localNCols) + j];
+	float val = image[(j * ny) + i];
+        localImage[(j * localNRows) + i] = val;
       }
     }
+    
+    //printf("localNRows = %d and localNCols = %d\n", localNRows, localNCols);
 
-    output_image("MASTERINIT.pgm", localNCols, localNRows + 1, localImage);
+    output_image("MASTERINIT.pgm", localNCols, localNRows, localImage);
 
-    //printf("Rank 0: Local image initialised\n");
+    printf("Rank 0: Local image initialised\n");
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
@@ -223,6 +229,8 @@ int main(int argc, char *argv[]) {
 
   double toc = wtime();
 
+  if (rank == 1) output_image("rank1STENCIL.pgm", localNCols, localNRows + 2, localImage);
+
   ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
 
   // rank 0 to image, all other ranks to rank 0, rank 0 to image
@@ -232,7 +240,7 @@ int main(int argc, char *argv[]) {
     // Send local image in MASTER to final image
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	       image[(i * localNCols) + j] = localImage[(i * localNCols) + j];
+	       tmp_image[(i * localNCols) + j] = localImage[(i * localNCols) + j];
       }
     }
     //printf("Rank 0 ---> final image\n");
@@ -265,7 +273,7 @@ int main(int argc, char *argv[]) {
       for (int i = 0; i < rowBoundary; i++) {
         MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, k, tag, MPI_COMM_WORLD, &status);
         for (int j = 0; j < localNCols; j++) {
-          image[baseRow + (i * localNCols) + j] = recvBuf[j];
+          tmp_image[baseRow + (i * localNCols) + j] = recvBuf[j];
         }
       }
       //printf("Rank 0 <--- Rank %d\n", k);
@@ -282,17 +290,17 @@ int main(int argc, char *argv[]) {
     printf(" runtime: %lf s\n", toc-tic);
     printf("------------------------------------\n");
 
-    output_image(OUTPUT_FILE, nx, ny, image);
+    output_image(OUTPUT_FILE, nx, ny, tmp_image);
   }
 
 
-  printf("Process %d has reached here right before finalisation\n", rank);
+  //printf("Process %d has reached here right before finalisation\n", rank);
 
   MPI_Finalize();
 
-  free(localImage);
-  free(tmp_localImage);
-  if (rank == 0) free(image);
+  //free(localImage);
+  //free(tmp_localImage);
+  //if (rank == 0) free(image);
 
   if (rank == 0) printf("FINISH SUCCESS\n");
 
