@@ -7,11 +7,6 @@
 // Define output file name
 #define OUTPUT_FILE "MPI.pgm"
 #define MASTER 0
-#define NROWS 4
-#define NCOLS 16
-#define EPSILON 0.01
-#define ITERS 18
-#define MASTER 0
 
 void stencil(const int nx, const int ny, float * restrict localImage,
              float * restrict tmp_localImage, int rank, int size, int up,
@@ -95,12 +90,10 @@ int main(int argc, char *argv[]) {
   if (rank == 0 || rank == size-1) {
     localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
     tmp_localImage = (float*)malloc(sizeof(float) * ((localNCols * localNRows) + localNCols));
-    //printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + localNCols));
   }
   else {
     localImage = (float*)malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
     tmp_localImage = (float*)malloc(sizeof(float)* ((localNCols * localNRows) + (2 * localNCols)));
-    //printf("Rank %d: Assigning space for %d floats\n", rank, ((localNCols * localNRows) + (2 * localNCols)));
   }
 
   // Buffers for message passing
@@ -121,6 +114,8 @@ int main(int argc, char *argv[]) {
     // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
 
+    output_image(initImage, nx, ny, image);
+    
     // Initialise local image in MASTER
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
@@ -208,17 +203,6 @@ int main(int argc, char *argv[]) {
   }
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
-
-
-  //if (rank != 0)
-    //MPI_Send(sendBuf, sizeof(sendBuf) + 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
-
-  //if (rank == 0) {
-    //for (int k = 1; k < size; k++) {
-      // MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_INT, k, tag, MPI_COMM_WORLD, &status);
-      //}
-    // printf("\nAll local images initialised. Time for stencil.\n\n");
-    //}
 
   //////////////////////////////// CALL STENCIL /////////////////////////////////
 
