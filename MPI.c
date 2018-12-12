@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
 
   int localNRows;        /* height of this rank */
   int localNCols;        /* width of this rank */
+  int localNPaddedRows;  /* height of rank with halos */
   int remoteNRows;       /* number of columns apportioned to a remote rank */
 
   float *localImage;     /* local stencil grid at iteration t - 1 */
@@ -50,6 +51,10 @@ int main(int argc, char *argv[]) {
   float *sendBuf;        /* buffer to hold values to send */
   float *recvBuf;        /* buffer to hold received values */
   float *printBuf;       /* buffer to hold values for printing */
+
+  int firstRow;
+  int lastRow;
+
 
   ////////////////////////////// INITIALISE MPI /////////////////////////////////
 
@@ -76,6 +81,9 @@ int main(int argc, char *argv[]) {
   // Rows may be different
   localNRows = calculateRows(rank, size, ny);
   localNCols = nx;
+
+  if (rank == MASTER || rank = size - 1) localNPaddedRows = localNRows + 1;
+  else                                   localNPaddedRows = localNRows + 2;
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
@@ -104,9 +112,7 @@ int main(int argc, char *argv[]) {
   // printBuf must be big enough to hold this number
   remoteNRows = calculateRows(size-1, size, ny);
   printBuf = (float*)malloc(sizeof(float) * (remoteNRows + 2));
-  
-  int baseRow = 0;
-  
+
   //////////////////////////// INITIALISE LOCAL IMAGES //////////////////////////
 
   // MASTER rank will have whole image initialised before dishing it out to
@@ -115,45 +121,37 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER) {
     // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
-  
-    //printf("Rank 0: Before local image initialisation\n");
-    
+
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	float val = image[(j * ny) + i];
+	      float val = image[(j * ny) + i];
         localImage[(j * localNRows) + i] = val;
       }
     }
-   
-    output_image("MASTERINIT.pgm", localNCols, localNRows, localImage);
-
-    printf("Rank 0: Local image initialised\n");
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
       // Find index where sending starts
+      // TO DO - FIX FOR NON SQUARE IMAGES
       //baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
-      baseRow = (ny/size) * k;
+      firstRow = (ny/size) * k;
+
       int rowBoundary = localNRows;
       if (k == size - 1) rowBoundary = calculateRows(size-1, size, ny);
-      rowBoundary = rowBoundary + baseRow;
+      lastRow = firstRow + calculateRows(k, size, ny);
 
       float val;
-      //printf("k = %d, baseRow = %d, rowBoundary = %d\n", k, baseRow, rowBoundary);
-      for (int row = baseRow; row < rowBoundary; row++) {
+
+      for (int row = firstRow; row < lastRow; row++) {
         for (int j = 0; j < localNCols; j++ ) {
-	  //val = image[(baseRow*j + ny) + (j * ny) + i];
-	  val = image[(j * ny) + row];
-	  //if (val > 10) printf("Val at i = %d, j = %d is %f\n", row, j , val);
-	  sendBuf[j] = val;
-	  //sendBuf[j] = 100.000000;
+      	  val = image[(j * ny) + row];
+      	  sendBuf[j] = val;
         }
         MPI_Send(sendBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
     }
   }
-  
-  printf("Local images sent to each rank\n");
+
 
   // Receive image to current rank
   if (rank != MASTER) {
@@ -164,17 +162,14 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i < localNRows + 1; i++) {
       MPI_Recv(recvBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
-	//if (recvBuf[j] > 10) printf("%f ", recvBuf[j]);
-        localImage[(j * actualRows) + (i)] = recvBuf[j];
+        localImage[(j * localNPaddedRows) + (i)] = recvBuf[j];
       }
-      //printf("\n");
     }
-    //printf("Rank %d: Local image initialised\n", rank);
   }
 
-  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
+  // if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
@@ -187,10 +182,10 @@ int main(int argc, char *argv[]) {
   else sendRow = (localNRows * localNCols);
 
   for(int j = 0; j < localNCols; j++)
-      sendBuf[j] = localImage[sendRow + j];
+      sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
 
-  MPI_Sendrecv(sendBuf, sizeof(sendBuf) + 1, MPI_FLOAT, down, tag,
-	             recvBuf, sizeof(sendBuf) + 1, MPI_FLOAT, up, tag,
+  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
+	             recvBuf, localNCols, MPI_FLOAT, up, tag,
 	             MPI_COMM_WORLD, &status);
 
   int recvRow = 0;
@@ -198,17 +193,17 @@ int main(int argc, char *argv[]) {
   for(int j = 0; j < localNCols; j++) {
     // If master rank, then don't assign buffer to localImage
     if (rank != MASTER)
-      localImage[j] = recvBuf[j];
+      localImage[(j * localNPaddedRows)] = recvBuf[j];
   }
 
   // Sending up, receiving from down
   if (rank != MASTER) sendRow = localNCols;
 
   for(int j = 0; j < localNCols; j++)
-      sendBuf[j] = localImage[sendRow + j];
+      sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
 
-  MPI_Sendrecv(sendBuf, sizeof(sendBuf) + 1, MPI_FLOAT, up, tag,
-	             recvBuf, sizeof(sendBuf) + 1, MPI_FLOAT, down, tag,
+  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
+	             recvBuf, localNCols, MPI_FLOAT, down, tag,
 	             MPI_COMM_WORLD, &status);
 
   if (rank == MASTER) recvRow = localNRows * localNCols;
@@ -220,6 +215,11 @@ int main(int argc, char *argv[]) {
     if (rank != size - 1)
       localImage[recvRow + j] = recvBuf[j];
   }
+
+  if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows + 1, localImage);
+  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
