@@ -229,7 +229,7 @@ int main(int argc, char *argv[]) {
     stencil(nx, ny, tmp_localImage, localImage, rank, size, up, down,
             localNRows, localNCols, sendBuf, recvBuf);
   }
-  
+
   printf("Process %d has completed stencil operation\n", rank);
 
   double toc = wtime();
@@ -251,9 +251,11 @@ int main(int argc, char *argv[]) {
 
   // Send local image from each rank to MASTER
   if (rank != MASTER) {
+    int rowBoundary = localNRows + 1;
+    if (rank == size - 1) rowBoundary = localNRows;
     float val;
 
-    for (int i = 1; i < localNRows + 1; i++) {
+    for (int i = 1; i < rowBoundary; i++) {
       for (int j = 0; j < localNCols; j++ ) {
          val = localImage[(i * localNCols) + j];
          sendBuf[j] = val;
@@ -270,6 +272,7 @@ int main(int argc, char *argv[]) {
       int baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
       int rowBoundary = localNRows;
       if (k == size - 1) rowBoundary = calculateRows(size-1, size, ny);
+
       for (int i = 0; i < rowBoundary; i++) {
         MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
         for (int j = 0; j < localNCols; j++) {
@@ -281,8 +284,8 @@ int main(int argc, char *argv[]) {
     printf("Final image stitched up!\n");
   }
 
-  
-  
+
+
   ////////////////////////////////// OUTPUT /////////////////////////////////////
 
   if (rank == 0) {
