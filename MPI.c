@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
 
   double tic = wtime();
 
-  for (int t = 0; t < niters; ++t) {
+  for (int t = 0; t < 1; ++t) {
     stencil(nx, ny, localImage, tmp_localImage, rank, size, up, down,
             localNRows, localNCols, sendBuf, recvBuf);
     stencil(nx, ny, tmp_localImage, localImage, rank, size, up, down,
@@ -271,7 +271,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
 
-  /////////////////////////// (MASTER RANK ONLY) /////////////////////////////////
+  /////////////////////////// (MASTER RANK ONLY) ////////////////////////////////
 
   if (rank == MASTER) {
     #pragma GCC ivdep
@@ -279,22 +279,22 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
       // top left
       tmp_localImage[j] = (localImage[j]     * centreWeighting) +
-                          (localImage[j + 1] + localImage[j + localNCols])
+                          (localImage[j + 1] + localImage[j + nx])
                           * neighbourWeighting;
       //#pragma ivdep
       #pragma GCC ivdep
-      for (int i = 1; i < localNCols - 1; ++i) {
+      for (int i = 1; i < nx - 1; ++i) {
 
-        // middle
-      tmp_localImage[i] = (localImage[i]       * centreWeighting)    +
-                          (localImage[i - 1] + localImage[i + 1] + localImage[i + localNCols])
+      // middle
+      tmp_localImage[i] = (localImage[i]       * centreWeighting)   +
+                          (localImage[i - 1]   + localImage[i + 1]  + localImage[i + nx])
                           * neighbourWeighting;
       }
 
       // top right (coordinate = localNCols - 1)
 
-      tmp_localImage[(localNCols - 1)] = (localImage[(localNCols - 1)]       * centreWeighting)    +
-                                         (localImage[(localNCols - 1) - 1]  + localImage[(localNCols - 1) + localNCols])
+      tmp_localImage[(localNCols - 1)] = (localImage[(nx - 1)]       * centreWeighting)    +
+                                         (localImage[(nx - 1) - 1]   + localImage[(nx - 1) + nx])
                                          * neighbourWeighting;
 
     }
@@ -303,20 +303,27 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
 
+
   int leftColCoord = 0;
   int middleCoord = 0;
   int rightColCoord = 0;
 
+  // Operate on different row indices depending on rank
+  int rowBoundary;
+  if (rank == MASTER) rowBoundary = localNRows;
+  else if (rank == size - 1) rowBoundary = localNRows - 1;
+  else rowBoundary = localNRows + 1;;
+
   #pragma GCC ivdep
-  for (int j = 1; j < ny - 1; ++j) {
+  for (int j = 1; j < rowBoundary; ++j) {
 
     // left column
     leftColCoord = j * nx;
 
-    tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
-                              (image[leftColCoord + 1]   +
-                               image[leftColCoord + nx]  +
-                               image[leftColCoord - nx]) * neighbourWeighting;
+    tmp_localImage[leftColCoord] = (localImage[leftColCoord]       * centreWeighting)    +
+                                   (localImage[leftColCoord + 1]   +
+                                    localImage[leftColCoord + nx]  +
+                                    localImage[leftColCoord - nx]) * neighbourWeighting;
 
     #pragma GCC ivdep
     for (int i = 1; i < nx - 1; ++i) {
@@ -324,56 +331,61 @@ void stencil(const int nx, const int ny, float * restrict localImage,
       // middle
       middleCoord = (j * nx) + i;
 
-      tmp_image[middleCoord] = (image[middleCoord]       * centreWeighting)    +
-                               (image[middleCoord + 1]   +
-                                image[middleCoord - 1]   +
-                                image[middleCoord + nx]  +
-                                image[middleCoord - nx]) * neighbourWeighting;
+      tmp_localImage[middleCoord] = (localImage[middleCoord]       * centreWeighting)    +
+                                    (localImage[middleCoord + 1]   +
+                                     localImage[middleCoord - 1]   +
+                                     localImage[middleCoord + nx]  +
+                                     localImage[middleCoord - nx]) * neighbourWeighting;
     }
 
     // right column
     rightColCoord = (j * nx) + (nx - 1);
 
-    tmp_image[rightColCoord] = (image[rightColCoord]       * centreWeighting)  +
-                               (image[rightColCoord - 1]   +
-                                image[rightColCoord + nx]  +
-                                image[rightColCoord - nx]) * neighbourWeighting;
+    tmp_localImage[rightColCoord] = (localImage[rightColCoord]       * centreWeighting)  +
+                                    (localImage[rightColCoord - 1]   +
+                                     localImage[rightColCoord + nx]  +
+                                     localImage[rightColCoord - nx]) * neighbourWeighting;
   }
 
 
-  //////////////////////////// LOOP FOR BOTTOM ROW ///////////////////////////
+  ///////////////////////////// LOOP FOR BOTTOM ROW /////////////////////////////
 
-  int bottomLeftCoord = (ny - 1) * nx;
-  int bottomMiddleCoord = 0;
-  int bottomRightCoord = (nx * ny) - 1;
+  ////////////////////////////// (FINAL RANK ONLY) //////////////////////////////
 
-  #pragma GCC ivdep
-  for (int j = ny - 1; j < ny; ++j) {
 
-    // bottom left
-
-    tmp_image[bottomLeftCoord] = (image[bottomLeftCoord]       * centreWeighting) +
-                                 (image[bottomLeftCoord + 1]   +
-                                  image[bottomLeftCoord - nx]) * neighbourWeighting;
+  if (rank == size - 1) {
+    // Consider top halo
+    int bottomLeftCoord = localNRows * nx;
+    int bottomMiddleCoord = 0;
+    int bottomRightCoord = (nx * (localNRows + 1)) - 1;
 
     #pragma GCC ivdep
-    for (int i = 1; i < nx - 1; ++i) {
+    for (int j = localNRows; j < localNRows + 1; ++j) {
+
+      // bottom left
+      tmp_localImage[bottomLeftCoord] = (localImage[bottomLeftCoord]       * centreWeighting) +
+                                        (localImage[bottomLeftCoord + 1]   +
+                                         localImage[bottomLeftCoord - nx]) * neighbourWeighting;
+
+      #pragma GCC ivdep
       // middle
-      bottomMiddleCoord = (j * nx) + i;
+      for (int i = 1; i < nx - 1; ++i) {
+        bottomMiddleCoord = (j * nx) + i;
 
-      tmp_image[bottomMiddleCoord] = (image[bottomMiddleCoord]       * centreWeighting) +
-                                     (image[bottomMiddleCoord - 1]   +
-                                      image[bottomMiddleCoord + 1]   +
-                                      image[bottomMiddleCoord - nx]) * neighbourWeighting;
+        tmp_localImage[bottomMiddleCoord] = (localImage[bottomMiddleCoord]       * centreWeighting) +
+                                            (localImage[bottomMiddleCoord - 1]   +
+                                             localImage[bottomMiddleCoord + 1]   +
+                                             localImage[bottomMiddleCoord - nx]) * neighbourWeighting;
+      }
+
+      // bottom right
+      tmp_localImage[bottomRightCoord] = (localImage[bottomRightCoord]       * centreWeighting) +
+                                         (localImage[bottomRightCoord - 1]   +
+                                          localImage[bottomRightCoord - nx]) * neighbourWeighting;
     }
-
-    // bottom right
-
-    tmp_image[bottomRightCoord] = (image[bottomRightCoord]       * centreWeighting) +
-                                  (image[bottomRightCoord - 1]   +
-                                   image[bottomRightCoord - nx]) * neighbourWeighting;
   }
 
+  printf("Process %d completed one iteration of stencil!\n", rank);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
