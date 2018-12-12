@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
 
   // Determine local grid size. Columns will be the same for all process ranks.
   // Rows may be different
-  localNRows = calculateRows(rank, size, ny);
-  localNCols = nx;
+  localNRows = calculateRows(rank, size, nx);
+  localNCols = ny;
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
@@ -114,14 +114,15 @@ int main(int argc, char *argv[]) {
     // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
 
-    output_image(initImage, nx, ny, image);
-    
     // Initialise local image in MASTER
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
 	       localImage[(i * localNCols) + j] = image[(i * localNCols) + j];
       }
     }
+
+    output_image("MASTERINIT.pgm", localNCols, localNRows + 2, localImage);
+
     //printf("Rank 0: Local image initialised\n");
 
     // Send local image to each rank
@@ -549,10 +550,10 @@ double wtime(void) {
 int calculateRows(int rank, int size, int ny) {
   int nrows;
 
-  nrows = ny / size;       /* integer division */
-  if ((ny % size) != 0) {  /* if there is a remainder */
+  nrows = nx / size;       /* integer division */
+  if ((nx % size) != 0) {  /* if there is a remainder */
     if (rank == size - 1)
-      nrows += ny % size;  /* add remainder to last rank */
+      nrows += nx % size;  /* add remainder to last rank */
   }
 
   return nrows;
