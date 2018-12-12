@@ -104,7 +104,9 @@ int main(int argc, char *argv[]) {
   // printBuf must be big enough to hold this number
   remoteNRows = calculateRows(size-1, size, ny);
   printBuf = (float*)malloc(sizeof(float) * (remoteNRows + 2));
-
+  
+  int baseRow = 0;
+  
   //////////////////////////// INITIALISE LOCAL IMAGES //////////////////////////
 
   // MASTER rank will have whole image initialised before dishing it out to
@@ -113,10 +115,8 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER) {
     // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
-    
-    output_image("INIT.pgm", nx, ny, image);
-
-    printf("Rank 0: Before local image initialisation\n");
+  
+    //printf("Rank 0: Before local image initialisation\n");
     
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
@@ -124,9 +124,7 @@ int main(int argc, char *argv[]) {
         localImage[(j * localNRows) + i] = val;
       }
     }
-    
-    //printf("localNRows = %d and localNCols = %d\n", localNRows, localNCols);
-
+   
     output_image("MASTERINIT.pgm", localNCols, localNRows, localImage);
 
     printf("Rank 0: Local image initialised\n");
@@ -134,31 +132,42 @@ int main(int argc, char *argv[]) {
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
       // Find index where sending starts
-      int baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
+      //baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
+      baseRow = (ny/size) * k;
       int rowBoundary = localNRows;
       if (k == size - 1) rowBoundary = calculateRows(size-1, size, ny);
-      float val;
+      rowBoundary = rowBoundary + baseRow;
 
-      for (int i = 0; i < rowBoundary; i++) {
+      float val;
+      //printf("k = %d, baseRow = %d, rowBoundary = %d\n", k, baseRow, rowBoundary);
+      for (int row = baseRow; row < rowBoundary; row++) {
         for (int j = 0; j < localNCols; j++ ) {
-	         val = image[baseRow + j];
-	         sendBuf[j] = val;
+	  //val = image[(baseRow*j + ny) + (j * ny) + i];
+	  val = image[(j * ny) + row];
+	  //if (val > 10) printf("Val at i = %d, j = %d is %f\n", row, j , val);
+	  sendBuf[j] = val;
+	  //sendBuf[j] = 100.000000;
         }
-        MPI_Ssend(sendBuf,sizeof(sendBuf)+1, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
+        MPI_Send(sendBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
     }
   }
+  
+  printf("Local images sent to each rank\n");
 
   // Receive image to current rank
   if (rank != MASTER) {
-    // int rowBoundary = localNRows + 1;
-    // if (rank == size - 1) rowBoundary = localNRows + 1;
+    int actualRows;
+    if (rank == size - 1) actualRows = localNRows + 1;
+    else actualRows = localNRows + 2;
 
     for (int i = 1; i < localNRows + 1; i++) {
-      MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
+      MPI_Recv(recvBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
-        localImage[(i * localNCols) + j] = recvBuf[j];
+	//if (recvBuf[j] > 10) printf("%f ", recvBuf[j]);
+        localImage[(j * actualRows) + (i)] = recvBuf[j];
       }
+      //printf("\n");
     }
     //printf("Rank %d: Local image initialised\n", rank);
   }
