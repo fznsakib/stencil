@@ -260,7 +260,12 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   ////////////////////////////// INITIALISATION /////////////////////////////////
 
-  // variables for stencil weightings
+  // MPI variables
+  int flag;
+  int tag = 0;
+  MPI_Status status;
+
+  // Variables for stencil weightings
   register float centreWeighting    = 0.6; // 3.0/5.0
   register float neighbourWeighting = 0.1;  // 0.5/5.0
 
