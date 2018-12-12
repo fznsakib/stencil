@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
     // Initialise local image in MASTER
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	       localImage[(i * localNCols) + j] = image[(i * localNRows) + j];
+	       localImage[(i * localNCols) + j] = image[(i * localNCols) + j];
       }
     }
     //printf("Rank 0: Local image initialised\n");
@@ -132,7 +132,9 @@ int main(int argc, char *argv[]) {
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
       // Find index where sending starts
-      int baseRow = (nx * ny) * (k / size);
+      int baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
+
+      ny % size
       int rankLocalRows = localNRows;
       float val;
       if (k == size - 1) rankLocalRows = calculateRows(size-1, size, ny);
@@ -140,7 +142,7 @@ int main(int argc, char *argv[]) {
       for (int i = 0; i < rankLocalRows; i++) {
         for (int j = 0; j < localNCols; j++ ) {
 	         val = image[baseRow + j];
-	         sendBuf[i] = val;
+	         sendBuf[j] = val;
         }
         MPI_Ssend(sendBuf,sizeof(sendBuf)+1, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
@@ -210,11 +212,11 @@ int main(int argc, char *argv[]) {
 
 
   if (rank != 0)
-    MPI_Send(tag, strlen(int) + 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
+    MPI_Send(sendBuf, sizeof(sendBuf) + 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
 
   if (rank == 0) {
     for (int k = 1; k < size; k++) {
-      MPI_Recv(tag, strlen(int) + 1, MPI_INT, k, tag, MPI_COMM_WORLD, &status);
+      MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_INT, k, tag, MPI_COMM_WORLD, &status);
     }
     printf("\nAll local images initialised. Time for stencil.\n\n");
   }
@@ -234,8 +236,48 @@ int main(int argc, char *argv[]) {
 
   ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
 
-  // TO DO
-  // Get all local grids from nodes and produce final image
+  // rank 0 to image, all other ranks to rank 0, rank 0 to image
+
+  if (rank == MASTER) {
+
+    // Send local image in MASTER to final image
+    for (int i = 0; i < localNRows; i++) {
+      for (int j = 0; j < localNCols; j++) {
+	       image[(i * localNCols) + j] = localImage[(i * localNCols) + j];
+      }
+    }
+    //printf("Rank 0: Local image initialised\n");
+  }
+
+  // Send local image from each rank to MASTER
+  if (rank != MASTER) {
+    float val;
+
+    for (int i = 1; i < localNRows + 1; i++) {
+      for (int j = 0; j < localNCols; j++ ) {
+         val = localImage[(i * localNCols) + j];
+         sendBuf[j] = val;
+      }
+      MPI_Ssend(sendBuf,sizeof(sendBuf)+1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+    }
+  }
+
+  // Receive local image from other ranks to MASTER
+  if (rank == MASTER) {
+
+    for (int k = 1; k < size; k++) {
+      baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
+      rowBoundary = localNRows;
+      if (k == size - 1) rowBoundary = calculateRows(size-1, size, ny);
+      for (int i = 0; i < rowBoundary; i++) {
+        MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
+        for (int j = 0; j < localNCols; j++) {
+          image[baseRow + (i * localNCols) + j] = recvBuf[j];
+        }
+      }
+    }
+  }
+
 
   ////////////////////////////////// OUTPUT /////////////////////////////////////
 
@@ -322,7 +364,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
   int rowBoundary;
   if (rank == MASTER) rowBoundary = localNRows;
   else if (rank == size - 1) rowBoundary = localNRows - 1;
-  else rowBoundary = localNRows + 1;;
+  else rowBoundary = localNRows + 1;
 
   #pragma GCC ivdep
   for (int j = 1; j < rowBoundary; ++j) {
