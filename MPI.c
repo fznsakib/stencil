@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i < localNRows + 1; i++) {
       MPI_Recv(recvBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
-        localImage[(j * localNPaddedRows) + (i)] = recvBuf[j];
+        localImage[(j * localNPaddedRows) + i] = recvBuf[j];
       }
     }
   }
@@ -177,12 +177,13 @@ int main(int argc, char *argv[]) {
 
   // Sending down, receiving from up
   int sendRow;
-  if (rank == MASTER) sendRow = (localNRows * localNCols) - localNCols;
-  else if (rank == size - 1) sendRow = 0; // Not sending down from last rank
-  else sendRow = (localNRows * localNCols);
+  if (rank == MASTER) sendRow = localNRows - 1;
+  else sendRow = localNRows;
 
+  if (rank != size - 1) {
   for(int j = 0; j < localNCols; j++)
       sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
+  }
 
   MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
 	             recvBuf, localNCols, MPI_FLOAT, up, tag,
@@ -197,27 +198,27 @@ int main(int argc, char *argv[]) {
   }
 
   // Sending up, receiving from down
-  if (rank != MASTER) sendRow = localNCols;
-
-  for(int j = 0; j < localNCols; j++)
-      sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
+  if (rank != MASTER) {
+    sendRow = 1;
+    for(int j = 0; j < localNCols; j++)
+        sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
+  }
 
   MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
 	             recvBuf, localNCols, MPI_FLOAT, down, tag,
 	             MPI_COMM_WORLD, &status);
 
-  if (rank == MASTER) recvRow = localNRows * localNCols;
-  else if (rank == size - 1) recvRow = 0; // Not receiving from below last rank
-  else recvRow = (localNRows * localNCols) + localNCols;
+  if (rank == MASTER) recvRow = localNRows;
+  else recvRow = localNPaddedRows - 1;
 
   for(int j = 0; j < localNCols; j++) {
     // If last rank, then don't assign buffer to localImage
     if (rank != size - 1)
-      localImage[recvRow + j] = recvBuf[j];
+      localImage[recvRow + (j * localNPaddedRows)] = recvBuf[j];
   }
 
-  if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows + 1, localImage);
-  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
+  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
+  if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
   // if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
   // if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
 
@@ -257,8 +258,7 @@ int main(int argc, char *argv[]) {
 
   // Send local image from each rank to MASTER
   if (rank != MASTER) {
-    // int rowBoundary = localNRows + 1;
-    // if (rank == size - 1) rowBoundary = localNRows + 1;
+
     float val;
 
     for (int i = 1; i < localNRows + 1; i++) {
