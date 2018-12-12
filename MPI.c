@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
 
   // Determine local grid size. Columns will be the same for all process ranks.
   // Rows may be different
-  localNRows = calculateRows(rank, size, nx);
-  localNCols = ny;
+  localNRows = calculateRows(rank, size, ny);
+  localNCols = nx;
 
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
@@ -550,10 +550,10 @@ double wtime(void) {
 int calculateRows(int rank, int size, int ny) {
   int nrows;
 
-  nrows = nx / size;       /* integer division */
-  if ((nx % size) != 0) {  /* if there is a remainder */
+  nrows = ny / size;       /* integer division */
+  if ((ny % size) != 0) {  /* if there is a remainder */
     if (rank == size - 1)
-      nrows += nx % size;  /* add remainder to last rank */
+      nrows += ny % size;  /* add remainder to last rank */
   }
 
   return nrows;
