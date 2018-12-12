@@ -133,11 +133,9 @@ int main(int argc, char *argv[]) {
     for (int k = 1; k < size; k++) {
       // Find index where sending starts
       int baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
-
-      ny % size
       int rankLocalRows = localNRows;
-      float val;
       if (k == size - 1) rankLocalRows = calculateRows(size-1, size, ny);
+      float val;
 
       for (int i = 0; i < rankLocalRows; i++) {
         for (int j = 0; j < localNCols; j++ ) {
@@ -266,8 +264,8 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER) {
 
     for (int k = 1; k < size; k++) {
-      baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
-      rowBoundary = localNRows;
+      int baseRow = ((nx * ny) - (nx * (ny % size))) * (k / size);
+      int rowBoundary = localNRows;
       if (k == size - 1) rowBoundary = calculateRows(size-1, size, ny);
       for (int i = 0; i < rowBoundary; i++) {
         MPI_Recv(recvBuf, sizeof(recvBuf) + 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
