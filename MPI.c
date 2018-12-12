@@ -158,7 +158,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
-
+  if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
+  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
