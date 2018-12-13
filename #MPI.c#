@@ -12,7 +12,6 @@ void stencil(const int nx, const int ny, float * restrict localImage,
              float * restrict tmp_localImage, int rank, int size, int up,
              int down, int localNRows, int localNCols, int localNPaddedRows,
              float * restrict sendBuf, float * restrict recvBuf);
-void stencilSingle(const int nx, const int ny, float * restrict image, float * restrict tmp_image);
 void init_image(const int nx, const int ny, float *  image, float *  tmp_image);
 void output_image(const char * file_name, const int nx, const int ny, float *image);
 int calculateRows(int rank, int size, int ny);
@@ -92,32 +91,6 @@ int main(int argc, char *argv[]) {
   float *image = malloc(sizeof(float)*nx*ny);
   float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-  /////////////////////////////// FOR ONE NODE //////////////////////////////////
-
-  if (size == 1 && rank == MASTER) {
-
-    init_image(nx, ny, image, tmp_image);
-
-    double tic = wtime();
-
-    for (int t = 0; t < niters; ++t) {
-      stencilSingle(nx, ny, image, tmp_image);
-      stencilSingle(nx, ny, image, tmp_image);
-    }
-
-    double toc = wtime();
-
-    printf("------------------------------------\n");
-    printf(" runtime: %lf s\n", toc-tic);
-    printf("------------------------------------\n");
-
-    output_image(OUTPUT_FILE, nx, ny, image);
-
-    return EXIT_SUCCESS;
-  }
-
-  /////////////////////////// ALLOCATE MORE MEMORY //////////////////////////////
-
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
 
@@ -157,6 +130,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    // output_image("rank0INIT.pgm", localNCols, localNRows + 1, localImage);
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
@@ -192,6 +166,10 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  // if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
@@ -239,6 +217,10 @@ int main(int argc, char *argv[]) {
       localImage[recvRow + (j * localNPaddedRows)] = recvBuf[j];
   }
 
+  // if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
+  // if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
@@ -253,8 +235,11 @@ int main(int argc, char *argv[]) {
             localNRows, localNCols, localNPaddedRows, sendBuf, recvBuf);
   }
 
+  //printf("Process %d has completed stencil operation\n", rank);
+
   double toc = wtime();
 
+  if (rank == 1) output_image("rank1STENCIL.pgm", localNCols, localNRows + 2, localImage);
 
   ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
 
@@ -270,6 +255,7 @@ int main(int argc, char *argv[]) {
 	      image[(j * ny) + i] = val;
       }
     }
+    //printf("Rank 0 ---> final image\n");
   }
 
   // Send local image from each rank to MASTER
@@ -284,6 +270,7 @@ int main(int argc, char *argv[]) {
       }
       MPI_Ssend(sendBuf, localNCols , MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
     }
+    //printf("Rank %d ---> Rank 0\n", rank);
   }
 
   // Receive local image from other ranks to MASTER
@@ -299,7 +286,9 @@ int main(int argc, char *argv[]) {
           image[(j * ny) + row] = recvBuf[j];
         }
       }
+      //printf("Rank 0 <--- Rank %d\n", k);
     }
+    //printf("Final image stitched up!\n");
   }
 
 
@@ -312,7 +301,6 @@ int main(int argc, char *argv[]) {
     printf("------------------------------------\n");
 
     output_image(OUTPUT_FILE, nx, ny, image);
-  }
 
     MPI_Finalize();
 
@@ -320,9 +308,8 @@ int main(int argc, char *argv[]) {
     free(tmp_localImage);
     free(image);
 
-  if (rank == 0)
-      printf("FINISH SUCCESS\n");
-
+    printf("FINISH SUCCESS\n");
+  }
 
   return EXIT_SUCCESS;
 }
@@ -353,7 +340,6 @@ void stencil(const int nx, const int ny, float * restrict localImage,
     int coord;
     #pragma GCC ivdep
     for (int j = 0; j < 1; ++j) {
-
       // top left
       tmp_localImage[j] = (localImage[j]     * centreWeighting) +
                           (localImage[j + 1] + localImage[j + localNPaddedRows])
@@ -361,7 +347,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
       //#pragma ivdep
       #pragma GCC ivdep
       for (int i = 1; i < nx - 1; ++i) {
-	       coord = (i * localNPaddedRows);
+	coord = (i * localNPaddedRows);
 
         // middle
         tmp_localImage[coord] = (localImage[coord]       * centreWeighting)   +
@@ -482,6 +468,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
   // Sending down, receiving from up
   int sendRow;
   if (rank == MASTER) sendRow = localNRows - 1;
+  else if (rank == size - 1) sendRow = 0;
   else sendRow = localNRows;
 
   if (rank != size - 1) {
@@ -525,131 +512,6 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
-// Stencil operation for one core
-void stencilSingle(const int nx, const int ny, float * restrict image, float * restrict tmp_image) {
-
-  // variables for stencil weightings
-  register float centreWeighting    = 0.6; // 3.0/5.0
-  register float neighbourWeighting = 0.1;  // 0.5/5.0
-
-  //__assume_aligned(image, 64);
-  //__assume_aligned(tmp_image, 64);
-  //__assume(nx%16==0);
-
-
-  //////////////////////////// LOOP FOR TOP ROW /////////////////////////////////
-
-  //#pragma ivdep
-  int coord;
-  #pragma GCC ivdep
-  for (int j = 0; j < 1; ++j) {
-
-    // top left
-    tmp_image[j] = (image[j]     * centreWeighting) +
-                   (image[j + 1] + image[j + ny])   * neighbourWeighting;
-    //#pragma ivdep
-    #pragma GCC ivdep
-    for (int i = 1; i < nx - 1; ++i) {
-      coord = i * ny;
-
-      // middle
-      tmp_image[i] = (image[i]       * centreWeighting)    +
-                     (image[i - ny] + image[i + ny] + image[i + 1])  * neighbourWeighting;
-    }
-
-    // top right (coordinate = nx - 1)
-    coord =  (nx - 1) * ny;
-    tmp_image[(nx - 1)] = (image[(nx - 1)]       * centreWeighting)    +
-                          (image[(nx - 1) - ny]  + image[(nx - 1) + 1])  * neighbourWeighting;
-
-  }
-
-  //////////////////////////// LOOP FOR MIDDLE BLOCK ///////////////////////////
-
-  int leftColCoord = 0;
-  int middleCoord = 0;
-  int rightColCoord = 0;
-
-  //__assume_aligned(image, 64);
-  //__assume_aligned(tmp_image, 64);
-  //__assume(nx%16==0);
-
-  //#pragma ivdep
-  #pragma GCC ivdep
-  for (int j = 1; j < nx - 1; ++j) {
-
-    // left column
-    leftColCoord = j;
-
-    tmp_image[leftColCoord] = (image[leftColCoord]       * centreWeighting)    +
-                              (image[leftColCoord + ny]   +
-                               image[leftColCoord + 1]  +
-                               image[leftColCoord - 1]) * neighbourWeighting;
-
-    //#pragma ivdep
-    #pragma GCC ivdep
-    for (int i = 1; i < nx - 1; ++i) {
-
-      // middle
-      middleCoord = (i * ny) + j;
-
-      tmp_image[middleCoord] = (image[middleCoord]       * centreWeighting)    +
-                               (image[middleCoord + 1]   +
-                                image[middleCoord - 1]   +
-                                image[middleCoord + ny]  +
-                                image[middleCoord - ny]) * neighbourWeighting;
-    }
-
-    // right column
-    rightColCoord = (ny * (nx - 1)) + j;
-
-    tmp_image[rightColCoord] = (image[rightColCoord]       * centreWeighting)  +
-                               (image[rightColCoord - ny]   +
-                                image[rightColCoord + 1]  +
-                                image[rightColCoord - 1]) * neighbourWeighting;
-  }
-
-
-  //////////////////////////// LOOP FOR BOTTOM ROW ///////////////////////////
-
-  int bottomLeftCoord = (ny - 1);
-  int bottomMiddleCoord = 0;
-  int bottomRightCoord = (nx * ny) - 1;
-
-  //__assume_aligned(image, 64);
-  //__assume_aligned(tmp_image, 64);
-  //__assume(nx%16==0);
-
-  //#pragma ivdep
-  #pragma GCC ivdep
-  for (int j = ny - 1; j < ny; ++j) {
-
-    // bottom left
-
-    tmp_image[bottomLeftCoord] = (image[bottomLeftCoord]       * centreWeighting) +
-                                 (image[bottomLeftCoord + 1]   +
-                                  image[bottomLeftCoord - nx]) * neighbourWeighting;
-
-    //#pragma ivdep
-    #pragma GCC ivdep
-    for (int i = 1; i < nx - 1; ++i) {
-      // middle
-      bottomMiddleCoord = (i * ny) + j;
-
-      tmp_image[bottomMiddleCoord] = (image[bottomMiddleCoord]       * centreWeighting) +
-                                     (image[bottomMiddleCoord - ny]   +
-                                      image[bottomMiddleCoord + ny]   +
-                                      image[bottomMiddleCoord - - 1]) * neighbourWeighting;
-    }
-
-    // bottom right
-
-    tmp_image[bottomRightCoord] = (image[bottomRightCoord]       * centreWeighting) +
-                                  (image[bottomRightCoord - ny]   +
-                                   image[bottomRightCoord - 1]) * neighbourWeighting;
-  }
-}
 
 // Create the input image
 void init_image(const int nx, const int ny, float * image, float * tmp_image) {
