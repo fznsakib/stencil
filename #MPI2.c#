@@ -11,12 +11,12 @@ void init_image(const int nx, const int ny, float **image, float **tmp_image);
 void output_image(const char *file_name, const int nx, const int ny, float **image);
 void stencil(const int localNCols, const int localNRows, float **localImage, float **tmp_localImage, int rank, int size, float *sendBuf, float *recvBuf);
 float wtime(void);
-int calculateRows(int rank, int size, int ny);
+int calculateRows(int rank, int size, int localNRows);
 
 int main(int argc, char *argv[]) {
 
   if (argc != 4) {
-    fprintf(stderr, "Usage: %s localNCols localNRows niters\n", argv[0]);
+    fprintf(stderr, "Usage: %s nx ny niters\n", argv[0]);
   }
 
   // Initialise problem dimensions from command line arguments
@@ -146,12 +146,10 @@ int main(int argc, char *argv[]) {
         localImage[row][col] = image[row][col];
       }
     }
+    
+    printf("Outputting rank0INIT\n");
+    output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
 
-    output_image("rank0INIT.pgm", localNRows, localNCols, localImage);
-
-    // Send local image to each rank
-    for (int k = 1; k < size; k++) {
-      int firstRow = (ny/size) * k;
       int lastRow = firstRow + calculateRows(k, size, ny);
       for (row = firstRow; row < lastRow; row++) {
         for (col = 0; col < localNCols; col++ ) {
@@ -171,12 +169,11 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-
-  if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
-  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows, localImage);
-  if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows, localImage);
-  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows, localImage);
-
+  
+  //if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
+  //if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows, localImage);
+  printf("Rank %d is ready to exchange halos\n", rank);
+  
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
   /*
@@ -271,11 +268,8 @@ int main(int argc, char *argv[]) {
     if (rank != size - 1)
       localImage[recvRow][col] = recvBuf[col];
   }
-
-  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows, localImage);
-  if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows, localImage);
-  if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows, localImage);
-  if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows, localImage);
+  
+  printf("Rank %d ready to call stencil\n", rank);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
