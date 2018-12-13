@@ -306,7 +306,7 @@ void stencil(const int local_width, const int local_height, double ** restrict l
     local_image_new[0][0] = local_image[0][0] * 0.6
       + (local_image[1][0] + local_image[0][1]) * 0.1;
 
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < local_width-1; col++) {
       local_image_new[0][col] = local_image[0][col] * 0.6
         + (local_image[1][col] + local_image[0][col-1] + local_image[0][col+1]) * 0.1; // right
@@ -320,14 +320,14 @@ void stencil(const int local_width, const int local_height, double ** restrict l
   /////////////////
   // MIDDLE ROWS //
   /////////////////
-  #pragma ivdep
+  #pragma GCC ivdep
   for (row = 1; row < middle_mod; row++) {
     // Left
     local_image_new[row][0] = local_image[row][0] * 0.6
       + (local_image[row-1][0] + local_image[row+1][0] + local_image[row][1])*0.1;
 
     // Middle
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < local_width-1; col++) {
       local_image_new[row][col] = local_image[row][col] * 0.6
         + (local_image[row-1][col] + local_image[row+1][col] + local_image[row][col-1] + local_image[row][col+1])*0.1;
@@ -347,7 +347,7 @@ void stencil(const int local_width, const int local_height, double ** restrict l
     local_image_new[local_height][0] = local_image[local_height][0] * 0.6
       + (local_image[local_height-1][0] + local_image[local_height][1]) * 0.1;
 
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < local_width-1; col++) {
       local_image_new[local_height][col] = local_image[local_height][col] * 0.6
         + (local_image[local_height-1][col] + local_image[local_height][col-1] + local_image[local_height][col+1]) * 0.1;
