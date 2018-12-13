@@ -3,7 +3,7 @@
 #PBS -N MPI
 #PBS -o OUT
 #PBS -q teaching
-#PBS -l nodes=1:ppn=4,walltime=00:05:00
+#PBS -l nodes=1:ppn=16,walltime=00:05:00
 
 #! Mail to user if job aborts
 #PBS -m a

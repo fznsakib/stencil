@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
   else {
     for (row = 1; row < localNRows+1; row++) {
       MPI_Recv(recvBuf, localNCols, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
-      printf("RANK %d: GETTING ROW %d\n", rank, row);
+      //printf("RANK %d: GETTING ROW %d\n", rank, row);
       for (col = 0; col < localNCols; col++) {
         localImage[row][col] = recvBuf[col];
       }
@@ -219,12 +219,13 @@ int main(int argc, char *argv[]) {
     stencil(localNCols, localNRows, tmp_localImage, localImage, rank, size, sendBuf, recvBuf);
   }
   double toc = wtime();
-
+  
+  if ( rank == 0) {
   // Output
   printf("------------------------------------\n");
   printf(" runtime: %lf s\n", toc-tic);
   printf("------------------------------------\n");
-
+  }
 
   ////////////
   // GATHER //
@@ -306,7 +307,7 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
     tmp_localImage[0][0] = localImage[0][0] * 0.6
       + (localImage[1][0] + localImage[0][1]) * 0.1;
 
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[0][col] = localImage[0][col] * 0.6
         + (localImage[1][col] + localImage[0][col-1] + localImage[0][col+1]) * 0.1; // right
@@ -320,14 +321,14 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
   /////////////////
   // MIDDLE ROWS //
   /////////////////
-  #pragma ivdep
+  #pragma GCC ivdep
   for (row = 1; row < middle_mod; row++) {
     // Left
     tmp_localImage[row][0] = localImage[row][0] * 0.6
       + (localImage[row-1][0] + localImage[row+1][0] + localImage[row][1])*0.1;
 
     // Middle
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[row][col] = localImage[row][col] * 0.6
         + (localImage[row-1][col] + localImage[row+1][col] + localImage[row][col-1] + localImage[row][col+1])*0.1;
@@ -347,7 +348,7 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
     tmp_localImage[localNRows][0] = localImage[localNRows][0] * 0.6
       + (localImage[localNRows-1][0] + localImage[localNRows][1]) * 0.1;
 
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[localNRows][col] = localImage[localNRows][col] * 0.6
         + (localImage[localNRows-1][col] + localImage[localNRows][col-1] + localImage[localNRows][col+1]) * 0.1;
