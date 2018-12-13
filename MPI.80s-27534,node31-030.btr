@@ -1,9 +1,0 @@
-
-MPI:27534 terminated with signal 11 at PC=2aaaaadc59e9 SP=7fffffffc2f0.  Backtrace:
-/cm/shared/apps/openmpi/gcc/64/1.6.5/lib64/libmpi.so.1(opal_memory_ptmalloc2_int_malloc+0x789)[0x2aaaaadc59e9]
-/cm/shared/apps/openmpi/gcc/64/1.6.5/lib64/libmpi.so.1(opal_memory_ptmalloc2_malloc+0x52)[0x2aaaaadc6d12]
-/lib64/libc.so.6(+0x66ecb)[0x2aaaabfbbecb]
-MPI(output_image+0x33)[0x403a83]
-MPI(main+0x2348)[0x406188]
-/lib64/libc.so.6(__libc_start_main+0xfd)[0x2aaaabf73d5d]
-MPI[0x400e99]
