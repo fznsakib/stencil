@@ -12,7 +12,7 @@
 application="MPI"
 
 #! Run options for the application
-options1="128 128 100"
+options1="1024 1024 100"
 # options2="4096 4096 100"
 # options3="8000 8000 100"
 
