@@ -86,6 +86,8 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER || rank == size - 1) localNPaddedRows = localNRows + 1;
   else                                   localNPaddedRows = localNRows + 2;
 
+  if (size == 1) localNPaddedRows = ny;
+
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
   // Set the input image
