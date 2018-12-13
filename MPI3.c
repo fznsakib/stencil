@@ -3,7 +3,7 @@
 #include <sys/time.h>
 #include "mpi.h"
 
-#define OUTPUT_FILE "stencil.pgm"
+#define OUTPUT_FILE "MPI.pgm"
 #define MASTER 0
 #define TRUE 1
 
@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
   int source;
 
   /* MPI Variables */
+  int tag = 0;
   int flag;         // checks whether MPI_Init called
   int size;         // n° of processes in comms world
   int rank;         // the process rank
@@ -66,10 +67,6 @@ int main(int argc, char *argv[]) {
 
   localNCols = nx;
   localNRows = calcLocalHeightFromRank(rank, size, ny);
-  if (localNRows < 1) {
-    fprintf(stderr,"Error: too many processes:- localNRows < 1\n");
-    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-  }
 
 
   ///////////////////////
@@ -102,7 +99,8 @@ int main(int argc, char *argv[]) {
       localImage[row]     = (double*)malloc(sizeof(double) * localNCols);
       tmp_localImage[row] = (double*)malloc(sizeof(double) * localNCols);
     }
-  } else {
+  }
+  else {
     // rows (height)
     localImage     = (double**)malloc(sizeof(double*) * localNRows + 2);
     tmp_localImage = (double**)malloc(sizeof(double*) * localNRows + 2);
@@ -136,21 +134,21 @@ int main(int argc, char *argv[]) {
     // send to all
     int base = ny / size;
     for (source = 1; source < size; source++) {
-      int firstRow = base*source;
+      int firstRow = (ny / size) *source;
       int lastRow = firstRow + calcLocalHeightFromRank(source, size, ny);
       for (row = firstRow; row < lastRow; row++) {
         for (col = 0; col < localNCols; col++ ) {
           sendBuf[col] = image[row][col];
         }
-        MPI_Send(sendBuf, nx, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
+        MPI_Send(sendBuf, nx, MPI_DOUBLE, source, tag, MPI_COMM_WORLD);
       }
     }
   }
   /* EVERY OTHER RANK IS RECEIVING */
   else {
     for (row = 1; row < localNRows+1; row++) {
-      MPI_Recv(recvBuf, localNCols, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
-      //printf("RANK %d: GETTING ROW %d\n", rank, row);
+      MPI_Recv(recvBuf, localNCols, MPI_DOUBLE, 0, tag, MPI_COMM_WORLD, &status);
+      printf("RANK %d: GETTING ROW %d\n", rank, row);
       for (col = 0; col < localNCols; col++) {
         localImage[row][col] = recvBuf[col];
       }
@@ -219,13 +217,8 @@ int main(int argc, char *argv[]) {
     stencil(localNCols, localNRows, tmp_localImage, localImage, rank, size, sendBuf, recvBuf);
   }
   double toc = wtime();
-  
-  if ( rank == 0) {
-  // Output
-  printf("------------------------------------\n");
-  printf(" runtime: %lf s\n", toc-tic);
-  printf("------------------------------------\n");
-  }
+
+
 
   ////////////
   // GATHER //
@@ -268,7 +261,13 @@ int main(int argc, char *argv[]) {
   //////////////
 
   if (rank == 0) {
+    // Output
+    printf("------------------------------------\n");
+    printf(" runtime: %lf s\n", toc-tic);
+    printf("------------------------------------\n");
+
     output_image(OUTPUT_FILE, nx, ny, image);
+    
     free(image);
     free(tmp_image);
 
@@ -307,7 +306,7 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
     tmp_localImage[0][0] = localImage[0][0] * 0.6
       + (localImage[1][0] + localImage[0][1]) * 0.1;
 
-    #pragma GCC ivdep
+    #pragma ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[0][col] = localImage[0][col] * 0.6
         + (localImage[1][col] + localImage[0][col-1] + localImage[0][col+1]) * 0.1; // right
@@ -321,14 +320,14 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
   /////////////////
   // MIDDLE ROWS //
   /////////////////
-  #pragma GCC ivdep
+  #pragma ivdep
   for (row = 1; row < middle_mod; row++) {
     // Left
     tmp_localImage[row][0] = localImage[row][0] * 0.6
       + (localImage[row-1][0] + localImage[row+1][0] + localImage[row][1])*0.1;
 
     // Middle
-    #pragma GCC ivdep
+    #pragma ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[row][col] = localImage[row][col] * 0.6
         + (localImage[row-1][col] + localImage[row+1][col] + localImage[row][col-1] + localImage[row][col+1])*0.1;
@@ -348,7 +347,7 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
     tmp_localImage[localNRows][0] = localImage[localNRows][0] * 0.6
       + (localImage[localNRows-1][0] + localImage[localNRows][1]) * 0.1;
 
-    #pragma GCC ivdep
+    #pragma ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[localNRows][col] = localImage[localNRows][col] * 0.6
         + (localImage[localNRows-1][col] + localImage[localNRows][col-1] + localImage[localNRows][col+1]) * 0.1;
