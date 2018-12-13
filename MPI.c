@@ -364,16 +364,16 @@ void stencil(const int nx, const int ny, float * restrict localImage,
       //#pragma ivdep
       #pragma GCC ivdep
       for (int i = 1; i < nx - 1; ++i) {
-	      //coord = (i * nx);
+	      // coord = (i * nx);
 
         // middle
-        tmp_localImage[coord] = (localImage[i]       * centreWeighting)   +
+        tmp_localImage[i] = (localImage[i]       * centreWeighting)   +
                                 (localImage[i - 1]   + localImage[i + 1]  + localImage[i + nx])
                                 * neighbourWeighting;
       }
 
       // top right
-      coord = (nx - 1)
+      coord = (nx - 1);
       tmp_localImage[coord] = (localImage[coord]       * centreWeighting)    +
                               (localImage[coord - 1]   + localImage[coord + nx])
                               * neighbourWeighting;
