@@ -381,12 +381,12 @@ void stencil(const int nx, const int ny, float * restrict localImage,
   int lastRow;
 
   if (rank == MASTER) {
-    firstRow = 0;
+    firstRow = 1;
     lastRow = localNPaddedRows - 1;
   }
   else if (rank == size - 1) {
     firstRow = 1;
-    lastRow = localNPaddedRows;
+    lastRow = localNPaddedRows - 1;
   }
   else {
     firstRow = 1;
