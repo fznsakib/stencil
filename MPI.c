@@ -196,6 +196,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
+  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows, localImage);
+  if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows, localImage);
+  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows, localImage);
+
+
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
   // Communicate between ranks to distribute halos
@@ -242,6 +248,10 @@ int main(int argc, char *argv[]) {
       localImage[j + (recvRow * localNCols)] = recvBuf[j];
   }
 
+  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows, localImage);
+  if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows, localImage);
+  if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows, localImage);
+  if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
