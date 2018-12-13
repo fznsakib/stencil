@@ -11,7 +11,7 @@ void init_image(const int nx, const int ny, float **image, float **tmp_image);
 void output_image(const char *file_name, const int nx, const int ny, float **image);
 void stencil(const int localNCols, const int localNRows, float **localImage, float **tmp_localImage, int rank, int size, float *sendBuf, float *recvBuf);
 float wtime(void);
-int calculateRows(int rank, int size, int localNRows);
+int calculateRows(int rank, int size, int ny);
 
 int main(int argc, char *argv[]) {
 
@@ -146,6 +146,8 @@ int main(int argc, char *argv[]) {
         localImage[row][col] = image[row][col];
       }
     }
+
+    output_image("rank0INIT.pgm", localNRows, localNCols, localImage);
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
