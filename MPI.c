@@ -429,7 +429,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
     // right column
     //rightColCoord = (row * nx) + (nx - 1);
-    rightColCoord = (row * nx) + (row - 1);
+    rightColCoord = (row * nx) + row;
 
     tmp_localImage[rightColCoord] = (localImage[rightColCoord]       * centreWeighting)  +
                                     (localImage[rightColCoord - 1]   +
