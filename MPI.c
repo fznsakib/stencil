@@ -351,7 +351,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
       //#pragma ivdep
       #pragma GCC ivdep
       for (int i = 1; i < nx - 1; ++i) {
-      coord = (i * localNPaddedRows)
+	coord = (i * localNPaddedRows);
 
       // middle
       tmp_localImage[coord] = (localImage[coord]       * centreWeighting)   +
