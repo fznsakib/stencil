@@ -154,12 +154,12 @@ int main(int argc, char *argv[]) {
     float val;
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	      val = image[(i * nx) + j];
-        localImage[(j * localNRows) + i] = val;
+	val = image[(i * nx) + j];
+        localImage[(i * localNCols) + j] = val;
       }
     }
 
-    output_image("rank0INIT.pgm", localNRows, localNCols, localImage);
+    output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {

@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
     // Send local image to each rank
     int base = image_height / size;
     for (int k = 1; k < size; k++) {
-      int firstRow = base*source;
+      int firstRow = base*k;
       int lastRow = firstRow + calculateRows(k, size, image_height);
       for (row = firstRow; row < lastRow; row++) {
         for (col = 0; col < local_width; col++ ) {
@@ -269,11 +269,12 @@ int main(int argc, char *argv[]) {
     printf("------------------------------------\n");
 
     output_image(OUTPUT_FILE, image_width, image_height, image);
-    free(image);
-    free(image_new);
+    //free(image);
+    //free(image_new);
 
-    MPI_Finalize();
+    // MPI_Finalize();
   }
+  MPI_Finalize();
   return EXIT_SUCCESS;
 }
 
