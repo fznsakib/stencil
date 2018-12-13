@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
   float *image = malloc(sizeof(float)*nx*ny);
   float *tmp_image = malloc(sizeof(float)*nx*ny);
 
-  /////////////////////////////// FOR ONE NODE //////////////////////////////////
+  /*/////////////////////////////// FOR ONE NODE //////////////////////////////////
 
   if (size == 1 && rank == MASTER) {
 
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     output_image(OUTPUT_FILE, nx, ny, image);
 
     return EXIT_SUCCESS;
-  }
+  }*/
 
   /////////////////////////// ALLOCATE MORE MEMORY //////////////////////////////
 
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
 	      val = image[(i * nx) + j];
-        localImage[(i * localNCols) + j] = val;
+        localImage[(j * localNRows) + i] = val;
       }
     }
 

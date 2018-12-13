@@ -6,449 +6,482 @@
 
 #define OUTPUT_FILE "MPI.pgm"
 #define MASTER 0
-#define TRUE 1
 
-void init_image(const int image_width, const int image_height, double **image, double **image_new);
-void output_image(const char *file_name, const int image_width, const int image_height, double **image);
-void stencil(const int local_width, const int local_height, double **local_image, double **local_image_new, int rank, int size, double *send_buffer, double *recv_buffer);
-double wtime(void);
-int calcLocalHeightFromRank(int rank, int size, int image_height);
+void init_image(const int nx, const int ny, float **image, float **tmp_image);
+void output_image(const char *file_name, const int nx, const int ny, float **image);
+void stencil(const int localNCols, const int localNRows, float **localImage, float **tmp_localImage, int rank, int size, float *sendBuf, float *recvBuf);
+float wtime(void);
+int calculateRows(int rank, int size, int localNRows);
 
 int main(int argc, char *argv[]) {
-  /* Loop Variables */
+
+  if (argc != 4) {
+    fprintf(stderr, "Usage: %s localNCols localNRows niters\n", argv[0]);
+  }
+
+  // Initialise problem dimensions from command line arguments
+  int nx = atoi(argv[1]);
+  int ny = atoi(argv[2]);
+  int niters   = atoi(argv[3]);
+
+
+  int flag;
+  int rank;              /* the rank of this process */
+  int size;              /* number of processes in the communicator */
+  int up;                /* the rank of the process above */
+  int down;              /* the rank of the process below */
+  int tag = 0;           /* scope for adding extra information to a message */
+  MPI_Status status;     /* struct used by MPI_Recv */
+
+  int localNRows;        /* height of this rank */
+  int localNCols;        /* width of this rank */
+  int localNPaddedRows;  /* height of rank with halos */
+  int remoteNRows;       /* number of columns apportioned to a remote rank */
+
+  float **image;
+  float **tmp_image;
+
+  float **localImage;     /* local stencil grid at iteration t - 1 */
+  float **tmp_localImage; /* local stencil grid at iteration t */
+
+  float *sendBuf;        /* buffer to hold values to send */
+  float *recvBuf;        /* buffer to hold received values */
+  float *printBuf;       /* buffer to hold values for printing */
+
   int col;
   int row;
-  int source;
 
-  /* MPI Variables */
-  int flag;         // checks whether MPI_Init called
-  int size;         // n° of processes in comms world
-  int rank;         // the process rank
-  MPI_Status status; // Struct for MPI_Recv
+  ////////////////////////////// INITIALISE MPI /////////////////////////////////
 
-  int local_width;  // how many rows the process has
-  int local_height; // "   "    cols "   "       "
+  MPI_Init( &argc, &argv );
 
-  double **image;
-  double **image_new;
-
-  double **local_image;      // the local section of image to operate on
-  double **local_image_new;  // the local section to write into
-  double *send_buffer;      // buffer to hold values to send
-  double *recv_buffer;      // buffer to hold values to receive
-
-  //===========================================================================
-
-  // Initiliase problem dimensions from command line arguments
-  int image_width  = atoi(argv[1]);
-  int image_height = atoi(argv[2]);
-  int iterations   = atoi(argv[3]);
-
-
-  ///////////////
-  // MPI setup //
-  ///////////////
-
-  // MPI init, safety checking and checking of cmd line args
-  MPI_Init( &argc, &argv ); MPI_Initialized(&flag);
-  if ( flag != TRUE ) {
+  MPI_Initialized(&flag);
+  if ( flag != 1 ) {
     MPI_Abort(MPI_COMM_WORLD,EXIT_FAILURE);
   }
-  MPI_Comm_size( MPI_COMM_WORLD, &size ); MPI_Comm_rank( MPI_COMM_WORLD, &rank );
-  if (argc != 4) {
-    fprintf(stderr, "Usage: %s image_width image_height iterations\n", argv[0]);
-    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-  }
+
+  // Get size and rank to identify process
+  MPI_Comm_size( MPI_COMM_WORLD, &size );
+  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+
+  // Get up and down process ranks
+  // Ensure correct neighbours for boundary ranks
+  if (rank == MASTER) up = size - 1;
+  else                up = rank - 1;
+
+  if (rank == size - 1) down = 0;
+  else                  down = rank + 1;
 
 
-  /////////////////////////////
-  // CALC SECTION DIMENSIONS //
-  /////////////////////////////
+  localNRows = calculateRows(rank, size, ny);
+  localNCols = nx;
 
-  local_width = image_width;
-  local_height = calcLocalHeightFromRank(rank, size, image_height);
-  if (local_height < 1) {
-    fprintf(stderr,"Error: too many processes:- local_height < 1\n");
-    MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
-  }
+  if (rank == MASTER || rank == size - 1) localNPaddedRows = localNRows + 1;
+  else                                   localNPaddedRows = localNRows + 2;
 
+  if (size == 1) localNPaddedRows = ny;
 
-  ///////////////////////
-  // Memory Allocation //
-  ///////////////////////
+  ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
-  // Allocate GLOBAL image
-  if (rank == 0) {
+  // Set the input image
+  if (rank == MASTER) {
     // rows (height)
-    image     = (double**)malloc(sizeof(double*) * image_height);
-    image_new = (double**)malloc(sizeof(double*) * image_height);
+    image     = (float**)malloc(sizeof(float*) * ny);
+    tmp_image = (float**)malloc(sizeof(float*) * ny);
 
     // cols (width)
-    for (row = 0; row < image_height; row++) {
-      image[row]     = (double*)malloc(sizeof(double) * image_width);
-      image_new[row] = (double*)malloc(sizeof(double) * image_width);
+    for (row = 0; row < ny; row++) {
+      image[row]     = (float*)malloc(sizeof(float) * nx);
+      tmp_image[row] = (float*)malloc(sizeof(float) * nx);
     }
 
-    init_image(image_width, image_height, image, image_new);
+    init_image(nx, ny, image, tmp_image);
   }
 
-  // Allocate LOCAL image (rank 0/size-1 only have 1 halo)
-  if (rank == 0 || rank == size-1) {
-    // rows (height)
-    local_image     = (double**)malloc(sizeof(double*) * local_height + 1);
-    local_image_new = (double**)malloc(sizeof(double*) * local_height + 1);
+  // Local grid: 2 extra rows for halos, 1 row for first and last ranks
+  // Two grids for previous and current iteration
+  if (rank == 0 || rank == size - 1) {
+    // Initialise rows
+    localImage     = (float**)malloc(sizeof(float*) * localNRows + 1);
+    tmp_localImage = (float**)malloc(sizeof(float*) * localNRows + 1);
 
-    // cols (width)
-    for (row = 0; row < local_height + 1; row++) {
-      local_image[row]     = (double*)malloc(sizeof(double) * local_width);
-      local_image_new[row] = (double*)malloc(sizeof(double) * local_width);
-    }
-  } else {
-    // rows (height)
-    local_image     = (double**)malloc(sizeof(double*) * local_height + 2);
-    local_image_new = (double**)malloc(sizeof(double*) * local_height + 2);
-
-    // cols (width)
-    for (row = 0; row < local_height + 2; row++) {
-      local_image[row]     = (double*)malloc(sizeof(double) * local_width);
-      local_image_new[row] = (double*)malloc(sizeof(double) * local_width);
+    // Initialise columns
+    for (row = 0; row < localNRows + 1; row++) {
+      localImage[row]     = (float*)malloc(sizeof(float) * localNCols);
+      tmp_localImage[row] = (float*)malloc(sizeof(float) * localNCols);
     }
   }
-
-  // Allocate memory buffers
-  send_buffer = (double*)malloc(sizeof(double) * local_width);
-  recv_buffer = (double*)malloc(sizeof(double) * local_width);
-
-
-  ////////////////
-  // DISTRIBUTE //
-  ////////////////
-
-  /* RANK 0 IS SENDING */
-  if (rank == 0) {
-
-    // don't need to message pass to self
-    for (row = 0; row < local_height; row++) {
-      for (col = 0; col < local_width; col++) {
-        local_image[row][col] = image[row][col];
-      }
-    }
-
-    // send to all
-    int base = image_height / size;
-    for (source = 1; source < size; source++) {
-      int firstRow = base*source;
-      int lastRow = firstRow + calcLocalHeightFromRank(source, size, image_height);
-      for (row = firstRow; row < lastRow; row++) {
-        for (col = 0; col < local_width; col++ ) {
-          send_buffer[col] = image[row][col];
-        }
-        MPI_Send(send_buffer, image_width, MPI_DOUBLE, source, 0, MPI_COMM_WORLD);
-      }
-    }
-  }
-  /* EVERY OTHER RANK IS RECEIVING */
   else {
-    for (row = 1; row < local_height+1; row++) {
-      MPI_Recv(recv_buffer, local_width, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &status);
-      printf("RANK %d: GETTING ROW %d\n", rank, row);
-      for (col = 0; col < local_width; col++) {
-        local_image[row][col] = recv_buffer[col];
+    // Initialise rows
+    localImage     = (float**)malloc(sizeof(float*) * localNRows + 2);
+    tmp_localImage = (float**)malloc(sizeof(float*) * localNRows + 2);
+
+    // Initialise columns
+    for (row = 0; row < localNRows + 2; row++) {
+      localImage[row]     = (float*)malloc(sizeof(float) * localNCols);
+      tmp_localImage[row] = (float*)malloc(sizeof(float) * localNCols);
+    }
+  }
+
+  // Buffers for message passing
+  sendBuf = (float*)malloc(sizeof(float) * localNCols);
+  recvBuf = (float*)malloc(sizeof(float) * localNCols);
+
+  // The last rank has the most columns apportioned.
+  // printBuf must be big enough to hold this number
+  remoteNRows = calculateRows(size-1, size, ny);
+  printBuf = (float*)malloc(sizeof(float) * (remoteNRows + 2));
+
+  //////////////////////////// INITIALISE LOCAL IMAGES //////////////////////////
+
+  // MASTER rank will have whole image initialised before dishing it out to
+  // the other ranks. MASTER rank will then be left with top-most row
+
+  // MASTER ---> OTHER RANKS
+  if (rank == MASTER) {
+
+    // Initialise own localImage
+    for (row = 0; row < localNRows; row++) {
+      for (col = 0; col < localNCols; col++) {
+        localImage[row][col] = image[row][col];
+      }
+    }
+
+    // Send local image to each rank
+    for (int k = 1; k < size; k++) {
+      int firstRow = (ny/size) * k;
+      int lastRow = firstRow + calculateRows(k, size, ny);
+      for (row = firstRow; row < lastRow; row++) {
+        for (col = 0; col < localNCols; col++ ) {
+          sendBuf[col] = image[row][col];
+        }
+        MPI_Send(sendBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
+      }
+    }
+  }
+
+  // Receive image to current rank
+  if (rank != MASTER) {
+    for (row = 1; row < localNRows + 1; row++) {
+      MPI_Recv(recvBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
+      for (col = 0; col < localNCols; col++) {
+        localImage[row][col] = recvBuf[col];
       }
     }
   }
 
 
-  ////////////////
-  // INIT HALOS //
-  ////////////////
+  ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
-  if (rank == 0) { /* TOP RANK */
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image[local_height-1][col];
+  /*
+  if (rank == MASTER) { // Master rank
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = localImage[localNRows-1][col];
     }
     // send down, #receive up#, #send up#, receive down
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank+1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank+1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank+1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank+1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image[local_height][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      localImage[localNRows][col] = recvBuf[col];
     }
-  } else if (rank == size-1) { /* BOTTOM RANK */
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image[1][col];
+  }
+  else if (rank == size-1) { // Bottom rank
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = localImage[1][col];
     }
     // #send down#, receive up, send up, #receive down#
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank-1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank-1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank-1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank-1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image[0][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      localImage[0][col] = recvBuf[col];
     }
-  } else {
+  }
+  else {
     // flow DOWN
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image[local_height][col];
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = localImage[localNRows][col];
     }
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank+1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank-1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank+1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank-1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image[0][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      localImage[0][col] = recvBuf[col];
     }
 
     // flow UP
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image[1][col];
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = localImage[1][col];
     }
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank-1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank+1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank-1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank+1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image[local_height+1][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      localImage[localNRows+1][col] = recvBuf[col];
     }
+  }*/
+
+  // Communicate between ranks to distribute halos
+
+  // Sending down, receiving from up
+  int sendRow;
+  if (rank == MASTER) sendRow = localNRows - 1;
+  else sendRow = localNRows;
+
+  if (rank != size - 1) {
+  for(col = 0; col < localNCols; col++)
+      sendBuf[col] = localImage[i][col];
   }
 
+  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
+	             recvBuf, localNCols, MPI_FLOAT, up, tag,
+	             MPI_COMM_WORLD, &status);
 
-  /////////////
-  // STENCIL //
-  /////////////
+  int recvRow = 0;
 
-  double tic = wtime();
-  for (int t = 0; t < iterations; ++t) {
-    stencil(local_width, local_height, local_image, local_image_new, rank, size, send_buffer, recv_buffer);
-    stencil(local_width, local_height, local_image_new, local_image, rank, size, send_buffer, recv_buffer);
+  for(j = 0; j < localNCols; j++) {
+    // If master rank, then don't assign buffer to localImage
+    if (rank != MASTER)
+      localImage[recvRow][col] = recvBuf[col];
   }
-  double toc = wtime();
 
-  // Output
-  printf("------------------------------------\n");
-  printf(" runtime: %lf s\n", toc-tic);
-  printf("------------------------------------\n");
+  // Sending up, receiving from down
+  if (rank != MASTER) {
+    sendRow = 1;
+    for(int j = 0; j < localNCols; j++)
+        sendBuf[col] = localImage[sendRow][col];
+  }
 
+  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
+	             recvBuf, localNCols, MPI_FLOAT, down, tag,
+	             MPI_COMM_WORLD, &status);
 
-  ////////////
-  // GATHER //
-  ////////////
+  if (rank == MASTER) recvRow = localNRows;
+  else recvRow = localNPaddedRows - 1;
 
-  /* RANK 0 IS GATHERING*/
-  if (rank == 0) {
+  for(int j = 0; j < localNCols; j++) {
+    // If last rank, then don't assign buffer to localImage
+    if (rank != size - 1)
+      localImage[recvRow][col] = recvBuf[col];
+  }
+
+  ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
+
+  //////////////////////////////// CALL STENCIL /////////////////////////////////
+
+  float tic = wtime();
+
+  for (int t = 0; t < niters; ++t) {
+    stencil(localNCols, localNRows, localImage, tmp_localImage,
+            rank, size, sendBuf, recvBuf);
+    stencil(localNCols, localNRows, tmp_localImage, localImage,
+            rank, size, sendBuf, recvBuf);
+  }
+
+  float toc = wtime();
+
+  ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
+
+  // Rank 0 to image, all other ranks to rank 0, rank 0 to image
+  if (rank == MASTER) {
     // don't need to message pass to self
-    for (row = 0; row < local_height; row++) {
-      for (col = 0; col < local_width; col++) {
-        image_new[row][col] = local_image[row][col];
+    for (row = 0; row < localNRows; row++) {
+      for (col = 0; col < localNCols; col++) {
+        tmp_image[row][col] = localImage[row][col];
       }
     }
+  }
 
-    int base = image_height / size;
-    for (source = 1; source < size; source++) {
-      int firstRow = base*source;
-      int lastRow = firstRow + calcLocalHeightFromRank(source, size, image_height);
+  // Send local image from each rank to MASTER
+  if (rank != MASTER) {
+    for (row = 1; row < localNRows + 1; row++) {
+      for (col = 0; col < localNCols; col++) {
+        sendBuf[col] = localImage[row][col];
+      }
+      MPI_Send(sendBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
+    }
+  }
+
+  // Receive local image from other ranks to MASTER
+  if (rank == MASTER) {
+
+    for (int k = 1; k < size; k++) {
+      firstRow = (ny/size) * k;
+      lastRow = firstRow + calculateRows(k, size, ny);
+
       for (row = firstRow; row < lastRow; row++) {
-        MPI_Recv(recv_buffer, image_width, MPI_DOUBLE, source, 0, MPI_COMM_WORLD, &status);
-        for (col = 0; col < image_width; col++) {
-          image_new[row][col] = recv_buffer[col];
+        MPI_Recv(recvBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD, &status);
+        for (col = 0; col < localNCols; col++) {
+          tmp_image[row][col] = recvBuf[col];
         }
       }
     }
   }
-  /* EVERY OTHER RANK IS SENDING*/
-  else {
-    for (row = 1; row < local_height+1; row++) {
-      for (col = 0; col < local_width; col++) {
-        send_buffer[col] = local_image[row][col];
-      }
-      MPI_Send(send_buffer, local_width, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-    }
-  }
 
 
-  //////////////
-  // SHUTDOWN //
-  //////////////
+  ////////////////////////////////// OUTPUT /////////////////////////////////////
 
-  if (rank == 0) {
-    output_image(OUTPUT_FILE, image_width, image_height, image);
+  if (rank == MASTER) {
+    // Output
+    printf("------------------------------------\n");
+    printf(" runtime: %lf s\n", toc-tic);
+    printf("------------------------------------\n");
+
+    output_image(OUTPUT_FILE, localNCols, localNRows, image);
     free(image);
-    free(image_new);
+    free(tmp_image);
 
     MPI_Finalize();
   }
   return EXIT_SUCCESS;
+
+  ////////////////////////////////// COMPLETE ///////////////////////////////////
+
 }
 
-/**
- * Convolutes an averaging stencil over an image
- * @param local_width     the width of the local image
- * @param local_height    the height of the local image
- * @param local_image     the image to manipulate
- * @param local_image_new space to store new values
- * @param rank            the rank of the process calling stencil
- */
-void stencil(const int local_width, const int local_height, double ** restrict local_image, double ** restrict local_image_new,
-  const int rank, const int size, double *send_buffer, double *recv_buffer) {
+
+void stencil(const int localNCols, const int localNRows, float ** restrict localImage, float ** restrict tmp_localImage,
+  const int rank, const int size, float *sendBuf, float *recvBuf) {
+
+  ////////////////////////////// INITIALISATION /////////////////////////////////
+
   MPI_Status status;
   int col;
   int row;
 
   int middle_mod;
-  register const int right_val = local_width - 1; // right-most col index
+  register const int right_val = localNCols - 1; // right-most col index
 
   if (rank == 0 || rank == size-1) {
-    middle_mod = local_height;
+    middle_mod = localNRows;
   } else {
-    middle_mod = local_height+1;
+    middle_mod = localNRows+1;
   }
 
   ///////////////////
   // TOP-MOST RANK //
   ///////////////////
-  if (rank == 0) {
-    local_image_new[0][0] = local_image[0][0] * 0.6
-      + (local_image[1][0] + local_image[0][1]) * 0.1;
+  if (rank == MASTER) {
+    tmp_localImage[0][0] = localImage[0][0] * 0.6
+      + (localImage[1][0] + localImage[0][1]) * 0.1;
 
-    #pragma ivdep
-    for (col = 1; col < local_width-1; col++) {
-      local_image_new[0][col] = local_image[0][col] * 0.6
-        + (local_image[1][col] + local_image[0][col-1] + local_image[0][col+1]) * 0.1; // right
+    #pragma GCC ivdep
+    for (col = 1; col < localNCols-1; col++) {
+      tmp_localImage[0][col] = localImage[0][col] * 0.6
+        + (localImage[1][col] + localImage[0][col-1] + localImage[0][col+1]) * 0.1; // right
     }
 
-    local_image_new[0][right_val] = local_image[0][right_val] * 0.6
-      + (local_image[1][right_val] + local_image[0][right_val-1]) * 0.1;
+    tmp_localImage[0][right_val] = localImage[0][right_val] * 0.6
+      + (localImage[1][right_val] + localImage[0][right_val-1]) * 0.1;
   }
 
 
   /////////////////
   // MIDDLE ROWS //
   /////////////////
-  #pragma ivdep
+  #pragma GCC ivdep
   for (row = 1; row < middle_mod; row++) {
     // Left
-    local_image_new[row][0] = local_image[row][0] * 0.6
-      + (local_image[row-1][0] + local_image[row+1][0] + local_image[row][1])*0.1;
+    tmp_localImage[row][0] = localImage[row][0] * 0.6
+      + (localImage[row-1][0] + localImage[row+1][0] + localImage[row][1])*0.1;
 
     // Middle
-    #pragma ivdep
-    for (col = 1; col < local_width-1; col++) {
-      local_image_new[row][col] = local_image[row][col] * 0.6
-        + (local_image[row-1][col] + local_image[row+1][col] + local_image[row][col-1] + local_image[row][col+1])*0.1;
+    #pragma GCC ivdep
+    for (col = 1; col < localNCols-1; col++) {
+      tmp_localImage[row][col] = localImage[row][col] * 0.6
+        + (localImage[row-1][col] + localImage[row+1][col] + localImage[row][col-1] + localImage[row][col+1])*0.1;
     }
 
     // Right
-    local_image_new[row][right_val] = local_image[row][right_val] * 0.6
-      + (local_image[row-1][right_val] + local_image[row+1][right_val] + local_image[row][right_val-1])*0.1;
+    tmp_localImage[row][right_val] = localImage[row][right_val] * 0.6
+      + (localImage[row-1][right_val] + localImage[row+1][right_val] + localImage[row][right_val-1])*0.1;
   }
 
 
   //////////////////////
-  // BOTTOM-MOST RANK // => NOTE: row = local_height to account for halo at 0
+  // BOTTOM-MOST RANK // => NOTE: row = localNRows to account for halo at 0
   //////////////////////
   if (rank == size-1) {
 
-    local_image_new[local_height][0] = local_image[local_height][0] * 0.6
-      + (local_image[local_height-1][0] + local_image[local_height][1]) * 0.1;
+    tmp_localImage[localNRows][0] = localImage[localNRows][0] * 0.6
+      + (localImage[localNRows-1][0] + localImage[localNRows][1]) * 0.1;
 
-    #pragma ivdep
-    for (col = 1; col < local_width-1; col++) {
-      local_image_new[local_height][col] = local_image[local_height][col] * 0.6
-        + (local_image[local_height-1][col] + local_image[local_height][col-1] + local_image[local_height][col+1]) * 0.1;
+    #pragma GCC ivdep
+    for (col = 1; col < localNCols-1; col++) {
+      tmp_localImage[localNRows][col] = localImage[localNRows][col] * 0.6
+        + (localImage[localNRows-1][col] + localImage[localNRows][col-1] + localImage[localNRows][col+1]) * 0.1;
     }
 
-    local_image_new[local_height][right_val] = local_image[local_height][right_val] * 0.6
-      + (local_image[local_height-1][right_val] + local_image[local_height][right_val-1]) * 0.1; // left
+    tmp_localImage[localNRows][right_val] = localImage[localNRows][right_val] * 0.6
+      + (localImage[localNRows-1][right_val] + localImage[localNRows][right_val-1]) * 0.1; // left
   }
 
 
-  ///////////////////
-  // HALO EXCHANGE //
-  ///////////////////
-  if (rank == 0) { /* TOP RANK */
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image_new[local_height-1][col];
+  ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
+
+  if (rank == MASTER) { /* TOP RANK */
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = tmp_localImage[localNRows-1][col];
     }
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank+1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank+1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank+1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank+1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image_new[local_height][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      tmp_localImage[localNRows][col] = recvBuf[col];
     }
   } else if (rank == size-1) { /* BOTTOM RANK */
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image_new[1][col];
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = tmp_localImage[1][col];
     }
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank-1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank-1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank-1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank-1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image_new[0][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      tmp_localImage[0][col] = recvBuf[col];
     }
   } else {
     // flow DOWN
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image_new[local_height][col];
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = tmp_localImage[localNRows][col];
     }
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank+1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank-1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank+1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank-1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image_new[0][col] = recv_buffer[col];
+    for (col = 0; col < localNCols; col++) {
+      tmp_localImage[0][col] = recvBuf[col];
     }
 
     // flow UP&
-    for (col = 0; col < local_width; col++) {
-      send_buffer[col] = local_image_new[1][col];
+    for (col = 0; col < localNCols; col++) {
+      sendBuf[col] = tmp_localImage[1][col];
     }
-    MPI_Sendrecv(send_buffer, local_width, MPI_DOUBLE, rank-1, 0,
-                 recv_buffer, local_width, MPI_DOUBLE, rank+1, 0,
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, rank-1, 0,
+                 recvBuf, localNCols, MPI_FLOAT, rank+1, 0,
                  MPI_COMM_WORLD, &status);
-    for (col = 0; col < local_width; col++) {
-      local_image_new[local_height+1][col] = recv_buffer[col];
-    }
-  }
-}
-
-
-/**
- * calculates how many rows a worker should have
- * @param  rank    the worker's rank
- * @param  size    how many workers in the cohort
- * @param  numRows the total number of rows in the image
- * @return         how many rows assigned to the worker
- */
-int calcLocalHeightFromRank(int rank, int size, int image_height) {
-  int section_height;
-
-  section_height = image_height / size;
-  if ((image_height % size) != 0) {
-    if (rank == size-1) {
-      section_height += image_height % size;
+    for (col = 0; col < localNCols; col++) {
+      tmp_localImage[localNRows+1][col] = recvBuf[col];
     }
   }
 
-  return section_height;
+  //printf("Process %d completed one iteration of stencil!\n", rank);
 }
 
 
-/**
- * Creates an 8x8 checkboard pattern on an image of specified sizes
- * @param image_width  width of canvas
- * @param image_height height of canvas
- * @param image        canvas to save to
- * @param image_new    copy of canvas to save to
- */
-void init_image(const int image_width, const int image_height, double **image, double **image_new) {
+
+void init_image(const int localNCols, const int localNRows, float **image, float **tmp_image) {
   // Zero everything
-  for (int j = 0; j < image_height; ++j) {
-    for (int i = 0; i < image_width; ++i) {
+  for (int j = 0; j < localNRows; ++j) {
+    for (int i = 0; i < localNCols; ++i) {
       image[j][i] = 0.0;
-      image_new[j][i] = 0.0;
+      tmp_image[j][i] = 0.0;
     }
   }
    // Checkerboard
   for (int j = 0; j < 8; ++j) {
     for (int i = 0; i < 8; ++i) {
-      for (int jj = j*image_height/8; jj < (j+1)*image_height/8; ++jj) {
-        for (int ii = i*image_width/8; ii < (i+1)*image_width/8; ++ii) {
+      for (int jj = j*localNRows/8; jj < (j+1)*localNRows/8; ++jj) {
+        for (int ii = i*localNCols/8; ii < (i+1)*localNCols/8; ++ii) {
           if ((i+j)%2)
           image[jj][ii] = 100.0;
         }
@@ -458,14 +491,7 @@ void init_image(const int image_width, const int image_height, double **image, d
 }
 
 
-/**
- * Routine to output the image in Netpbm grayscale binary image format
- * @param file_name    name to save image to
- * @param image_width  width of output image
- * @param image_height height of output image
- * @param image        array to convert to image
- */
-void output_image(const char * file_name, const int image_width, const int image_height, double **image) {
+void output_image(const char * file_name, const int localNCols, const int localNRows, float **image) {
   // Open output file
   FILE *fp = fopen(file_name, "w");
   if (!fp) {
@@ -473,20 +499,20 @@ void output_image(const char * file_name, const int image_width, const int image
     exit(EXIT_FAILURE);
   }
    // Ouptut image header
-  fprintf(fp, "P5 %d %d 255\n", image_width, image_height);
+  fprintf(fp, "P5 %d %d 255\n", localNCols, localNRows);
    // Calculate maximum value of image
   // This is used to rescale the values
   // to a range of 0-255 for output
-  double maximum = 0.0;
-  for (int j = 0; j < image_height; ++j) {
-    for (int i = 0; i < image_width; ++i) {
+  float maximum = 0.0;
+  for (int j = 0; j < localNRows; ++j) {
+    for (int i = 0; i < localNCols; ++i) {
       if (image[j][i] > maximum)
         maximum = image[j][i];
     }
   }
    // Output image, converting to numbers 0-255
-  for (int j = 0; j < image_height; ++j) {
-    for (int i = 0; i < image_width; ++i) {
+  for (int j = 0; j < localNRows; ++j) {
+    for (int i = 0; i < localNCols; ++i) {
       fputc((char)(255.0*image[j][i]/maximum), fp);
     }
   }
@@ -496,8 +522,22 @@ void output_image(const char * file_name, const int image_width, const int image
 
 
 // Get the current time in seconds since the Epoch
-double wtime(void) {
+float wtime(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return tv.tv_sec + tv.tv_usec*1e-6;
+}
+
+
+int calculateRows(int rank, int size, int localNRows) {
+  int nrows;
+
+  nrows = localNRows / size;
+  if ((localNRows % size) != 0) {
+    if (rank == size-1) {
+      nrows += localNRows % size;
+    }
+  }
+
+  return nrows;
 }
