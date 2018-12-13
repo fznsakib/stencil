@@ -154,12 +154,12 @@ int main(int argc, char *argv[]) {
     float val;
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	val = image[(i * nx) + j];
+	      val = image[(i * nx) + j];
         localImage[(i * localNCols) + j] = val;
       }
     }
 
-    output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
+    //output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
 
       for (int row = firstRow; row < lastRow; row++) {
         for (int j = 0; j < localNCols; j++ ) {
-      	  val = image[(j * ny) + row];
+      	  val = image[(row * nx) + j];
       	  sendBuf[j] = val;
         }
         MPI_Send(sendBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i < localNRows + 1; i++) {
       MPI_Recv(recvBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
-        localImage[(j * localNPaddedRows) + i] = recvBuf[j];
+        localImage[(i * localNCols) + j] = recvBuf[j];
       }
     }
   }
@@ -207,7 +207,7 @@ int main(int argc, char *argv[]) {
 
   if (rank != size - 1) {
   for(int j = 0; j < localNCols; j++)
-      sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
+      sendBuf[j] = localImage[j + (sendRow + localNCols)];
   }
 
   MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
@@ -219,14 +219,14 @@ int main(int argc, char *argv[]) {
   for(int j = 0; j < localNCols; j++) {
     // If master rank, then don't assign buffer to localImage
     if (rank != MASTER)
-      localImage[(j * localNPaddedRows)] = recvBuf[j];
+      localImage[j + (recvRow * localNCols)] = recvBuf[j];
   }
 
   // Sending up, receiving from down
   if (rank != MASTER) {
     sendRow = 1;
     for(int j = 0; j < localNCols; j++)
-        sendBuf[j] = localImage[sendRow + (j * localNPaddedRows)];
+        sendBuf[j] = localImage[j + (sendRow * localNCols)];
   }
 
   MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
   for(int j = 0; j < localNCols; j++) {
     // If last rank, then don't assign buffer to localImage
     if (rank != size - 1)
-      localImage[recvRow + (j * localNPaddedRows)] = recvBuf[j];
+      localImage[j + (recvRow * localNCols)] = recvBuf[j];
   }
 
 
@@ -269,8 +269,8 @@ int main(int argc, char *argv[]) {
     float val;
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-        val = localImage[(j * localNPaddedRows) + i];
-	      image[(j * ny) + i] = val;
+        val = localImage[(i * localNCols) + j];
+	      image[(i * nx) + j] = val;
       }
     }
   }
@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
 
     for (int i = 1; i < localNRows + 1; i++) {
       for (int j = 0; j < localNCols; j++ ) {
-         val = localImage[(j * localNPaddedRows) + i];
+         val = localImage[(i * localNCols) + j];
          sendBuf[j] = val;
       }
       MPI_Ssend(sendBuf, localNCols , MPI_FLOAT, 0, tag, MPI_COMM_WORLD);
@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
       for (int row = firstRow; row < lastRow; row++) {
         MPI_Recv(recvBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD, &status);
         for (int j = 0; j < localNCols; j++) {
-          image[(j * ny) + row] = recvBuf[j];
+          image[(row * nx) + j] = recvBuf[j];
         }
       }
     }
