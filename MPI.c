@@ -121,17 +121,18 @@ int main(int argc, char *argv[]) {
   if (rank == MASTER) {
     // Initialise whole image in MASTER
     init_image(nx, ny, image, tmp_image);
-
+    
+    float val;
     for (int i = 0; i < localNRows; i++) {
       for (int j = 0; j < localNCols; j++) {
-	      float val = image[(j * ny) + i];
-        localImage[(j * localNRows) + i] = val;
+	val = image[(j * ny) + i];
+        localImage[(j * localNPaddedRows) + i] = val;
       }
     }
 
-    for (int j = 0; j < localNCols; j++) {
-      localImage[(j * localNRows) + localNRows] = 100.000000;
-    }
+    //for (int j = 0; j < localNCols; j++) {
+    //  localImage[(j * localNRows) + localNRows] = 100.000000;
+    //}
 
     output_image("rank0INIT.pgm", localNCols, localNRows + 1, localImage);
 
