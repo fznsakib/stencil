@@ -1,6 +1,0 @@
-
-MPI:12038 terminated with signal 11 at PC=403b83 SP=7fffffffc3c0.  Backtrace:
-MPI(output_image+0x133)[0x403b83]
-MPI(main+0x900)[0x404740]
-/lib64/libc.so.6(__libc_start_main+0xfd)[0x2aaaabf73d5d]
-MPI[0x400e99]
