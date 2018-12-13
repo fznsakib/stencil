@@ -376,7 +376,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   // Operate on different row indices depending on rank
   int firstRow;
-  int lastRow
+  int lastRow;
 
   if (rank == MASTER) {
     firstRow = 0;
@@ -417,7 +417,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
     // right column
     //rightColCoord = (row * nx) + (nx - 1);
-    rightColCoord = (i * nlocalNPaddedRows) + row;
+    rightColCoord = ((nx - 1) * localNPaddedRows) + row;
 
     tmp_localImage[rightColCoord] = (localImage[rightColCoord]       * centreWeighting)  +
                                     (localImage[rightColCoord - localNPaddedRows]   +
