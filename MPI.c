@@ -486,7 +486,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   if (rank != size - 1) {
   for(int j = 0; j < localNCols; j++)
-      sendBuf[j] = tmp_localImage[j + (sendRow + localNCols)];
+      sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
   }
 
   MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
