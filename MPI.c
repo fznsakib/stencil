@@ -660,7 +660,7 @@ void init_image(const int nx, const int ny, float * image, float * tmp_image) {
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
       image[j+i*ny] = 0.0;
-      tmp_image[j+i*ny] = 0.0;
+      tmp_image[i+j*nx] = 0.0;
     }
   }
 
@@ -670,7 +670,7 @@ void init_image(const int nx, const int ny, float * image, float * tmp_image) {
       for (int jj = j*ny/8; jj < (j+1)*ny/8; ++jj) {
         for (int ii = i*nx/8; ii < (i+1)*nx/8; ++ii) {
           if ((i+j)%2)
-          image[jj+ii*ny] = 100.0;
+          image[ii+jj*nx] = 100.0;
         }
       }
     }
@@ -696,15 +696,15 @@ void output_image(const char * file_name, const int nx, const int ny, float *ima
   double maximum = 0.0;
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
-      if (image[j+i*ny] > maximum)
-        maximum = image[j+i*ny];
+      if (image[i+j*nx] > maximum)
+        maximum = image[i+j*nx];
     }
   }
 
   // Output image, converting to numbers 0-255
   for (int j = 0; j < ny; ++j) {
     for (int i = 0; i < nx; ++i) {
-      fputc((char)(255.0*image[j+i*ny]/maximum), fp);
+      fputc((char)(255.0*image[i+j*nx]/maximum), fp);
     }
   }
 
