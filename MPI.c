@@ -129,6 +129,12 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    for (int j = 0; j < localNCols; j++) {
+      localImage[(j * localNRows) + localNRows] = 100.000000;
+    }
+
+    output_image("rank0INIT.pgm", localNCols, localNRows + 1, localImage);
+
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
       // Find index where sending starts
@@ -167,9 +173,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows + 2, localImage);
   // if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
+  // if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows + 1, localImage);
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
 
@@ -217,10 +223,10 @@ int main(int argc, char *argv[]) {
       localImage[recvRow + (j * localNPaddedRows)] = recvBuf[j];
   }
 
-  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows, localImage);
+  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
   if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
+  // if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
