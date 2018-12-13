@@ -340,6 +340,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
   /////////////////////////// (MASTER RANK ONLY) ////////////////////////////////
 
   if (rank == MASTER) {
+    int coord;
     #pragma GCC ivdep
     for (int j = 0; j < 1; ++j) {
 
@@ -350,17 +351,18 @@ void stencil(const int nx, const int ny, float * restrict localImage,
       //#pragma ivdep
       #pragma GCC ivdep
       for (int i = 1; i < nx - 1; ++i) {
+      coord = (i * localNPaddedRows)
 
       // middle
-      tmp_localImage[i] = (localImage[i]       * centreWeighting)   +
-                          (localImage[i - localNPaddedRows]   + localImage[i + 1]  + localImage[i + localNPaddedRows])
+      tmp_localImage[coord] = (localImage[coord]       * centreWeighting)   +
+                          (localImage[coord - localNPaddedRows]   + localImage[coord + 1]  + localImage[coord + localNPaddedRows])
                           * neighbourWeighting;
       }
 
-      // top right (coordinate = localNCols - 1)
-
-      tmp_localImage[(localNCols - 1)] = (localImage[(nx - 1)]       * centreWeighting)    +
-                                         (localImage[(nx - 1) - localNPaddedRows]   + localImage[(nx - 1) + 1])
+      // top right
+      coord = (nx - 1) * localNPaddedRows;
+      tmp_localImage[coord] = (localImage[coord]       * centreWeighting)    +
+                                         (localImage[coord - localNPaddedRows]   + localImage[coord + 1])
                                          * neighbourWeighting;
 
     }
