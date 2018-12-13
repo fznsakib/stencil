@@ -11,7 +11,7 @@ void init_image(const int nx, const int ny, double **image, double **tmp_image);
 void output_image(const char *file_name, const int nx, const int ny, double **image);
 void stencil(const int localNCols, const int localNRows, double **localImage, double **tmp_localImage, int rank, int size, double *sendBuf, double *recvBuf);
 double wtime(void);
-int calcLocalHeightFromRank(int rank, int size, int ny);
+int calculateRows(int rank, int size, int ny);
 
 int main(int argc, char *argv[]) {
   /* Loop Variables */
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
   /////////////////////////////
 
   localNCols = nx;
-  localNRows = calcLocalHeightFromRank(rank, size, ny);
+  localNRows = calculateRows(rank, size, ny);
 
 
   ///////////////////////
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
     int base = ny / size;
     for (source = 1; source < size; source++) {
       int firstRow = (ny / size) *source;
-      int lastRow = firstRow + calcLocalHeightFromRank(source, size, ny);
+      int lastRow = firstRow + calculateRows(source, size, ny);
       for (row = firstRow; row < lastRow; row++) {
         for (col = 0; col < localNCols; col++ ) {
           sendBuf[col] = image[row][col];
@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
     int base = ny / size;
     for (source = 1; source < size; source++) {
       int firstRow = base*source;
-      int lastRow = firstRow + calcLocalHeightFromRank(source, size, ny);
+      int lastRow = firstRow + calculateRows(source, size, ny);
       for (row = firstRow; row < lastRow; row++) {
         MPI_Recv(recvBuf, nx, MPI_DOUBLE, source, 0, MPI_COMM_WORLD, &status);
         for (col = 0; col < nx; col++) {
@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
     printf("------------------------------------\n");
 
     output_image(OUTPUT_FILE, nx, ny, image);
-    
+
     free(image);
     free(tmp_image);
 
@@ -276,14 +276,7 @@ int main(int argc, char *argv[]) {
   return EXIT_SUCCESS;
 }
 
-/**
- * Convolutes an averaging stencil over an image
- * @param localNCols     the width of the local image
- * @param localNRows    the height of the local image
- * @param localImage     the image to manipulate
- * @param tmp_localImage space to store new values
- * @param rank            the rank of the process calling stencil
- */
+
 void stencil(const int localNCols, const int localNRows, double ** restrict localImage, double ** restrict tmp_localImage,
   const int rank, const int size, double *sendBuf, double *recvBuf) {
   MPI_Status status;
@@ -306,7 +299,7 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
     tmp_localImage[0][0] = localImage[0][0] * 0.6
       + (localImage[1][0] + localImage[0][1]) * 0.1;
 
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[0][col] = localImage[0][col] * 0.6
         + (localImage[1][col] + localImage[0][col-1] + localImage[0][col+1]) * 0.1; // right
@@ -320,14 +313,14 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
   /////////////////
   // MIDDLE ROWS //
   /////////////////
-  #pragma ivdep
+  #pragma GCC ivdep
   for (row = 1; row < middle_mod; row++) {
     // Left
     tmp_localImage[row][0] = localImage[row][0] * 0.6
       + (localImage[row-1][0] + localImage[row+1][0] + localImage[row][1])*0.1;
 
     // Middle
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[row][col] = localImage[row][col] * 0.6
         + (localImage[row-1][col] + localImage[row+1][col] + localImage[row][col-1] + localImage[row][col+1])*0.1;
@@ -347,7 +340,7 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
     tmp_localImage[localNRows][0] = localImage[localNRows][0] * 0.6
       + (localImage[localNRows-1][0] + localImage[localNRows][1]) * 0.1;
 
-    #pragma ivdep
+    #pragma GCC ivdep
     for (col = 1; col < localNCols-1; col++) {
       tmp_localImage[localNRows][col] = localImage[localNRows][col] * 0.6
         + (localImage[localNRows-1][col] + localImage[localNRows][col-1] + localImage[localNRows][col+1]) * 0.1;
@@ -406,35 +399,19 @@ void stencil(const int localNCols, const int localNRows, double ** restrict loca
   }
 }
 
+int calculateRows(int rank, int size, int ny) {
+  int nrows;
 
-/**
- * calculates how many rows a worker should have
- * @param  rank    the worker's rank
- * @param  size    how many workers in the cohort
- * @param  numRows the total number of rows in the image
- * @return         how many rows assigned to the worker
- */
-int calcLocalHeightFromRank(int rank, int size, int ny) {
-  int section_height;
-
-  section_height = ny / size;
+  nrows = ny / size;
   if ((ny % size) != 0) {
     if (rank == size-1) {
-      section_height += ny % size;
+      nrows += ny % size;
     }
   }
 
-  return section_height;
+  return nrows;
 }
 
-
-/**
- * Creates an 8x8 checkboard pattern on an image of specified sizes
- * @param nx  width of canvas
- * @param ny height of canvas
- * @param image        canvas to save to
- * @param tmp_image    copy of canvas to save to
- */
 void init_image(const int nx, const int ny, double **image, double **tmp_image) {
   // Zero everything
   for (int j = 0; j < ny; ++j) {
@@ -457,13 +434,7 @@ void init_image(const int nx, const int ny, double **image, double **tmp_image) 
 }
 
 
-/**
- * Routine to output the image in Netpbm grayscale binary image format
- * @param file_name    name to save image to
- * @param nx  width of output image
- * @param ny height of output image
- * @param image        array to convert to image
- */
+
 void output_image(const char * file_name, const int nx, const int ny, double **image) {
   // Open output file
   FILE *fp = fopen(file_name, "w");
