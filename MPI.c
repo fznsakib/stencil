@@ -301,6 +301,7 @@ int main(int argc, char *argv[]) {
     printf("------------------------------------\n");
 
     output_image(OUTPUT_FILE, nx, ny, image);
+  }
 
     MPI_Finalize();
 
@@ -308,8 +309,9 @@ int main(int argc, char *argv[]) {
     free(tmp_localImage);
     free(image);
 
-    printf("FINISH SUCCESS\n");
-  }
+    if (rank == 0)
+      printf("FINISH SUCCESS\n");
+  
 
   return EXIT_SUCCESS;
 }
