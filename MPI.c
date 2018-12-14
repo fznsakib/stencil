@@ -308,7 +308,6 @@ int main(int argc, char *argv[]) {
    }
  }
 
-}
 
   //if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
   //if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
@@ -380,6 +379,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  
 
 
 
