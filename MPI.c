@@ -225,7 +225,8 @@ int main(int argc, char *argv[]) {
   for(int j = 0; j < localNCols; j++) {
     // If master rank, then don't assign buffer to localImage
     if (rank != MASTER)
-      localImage[j + (recvRow * localNCols)] = recvBuf[j];
+      //localImage[j + (recvRow * localNCols)] = recvBuf[j];
+      tmp_localImage[j] = recvBuf[j];
   }
 
   // Sending up, receiving from down
@@ -513,7 +514,8 @@ void stencil(const int nx, const int ny, float * restrict localImage,
     for(int j = 0; j < localNCols; j++) {
       // If master rank, then don't assign buffer to localImage
       if (rank != MASTER)
-        tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
+        //tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
+        tmp_localImage[j] = recvBuf[j];
     }
 
     // Sending up, receiving from down
