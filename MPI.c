@@ -173,51 +173,6 @@ int main(int argc, char *argv[]) {
 
   // Communicate between ranks to distribute halos
 
-  /*
-  // Sending down, receiving from up
-  if (size > 0) {
-    int sendRow;
-    if (rank == MASTER) sendRow = localNRows - 1;
-    else sendRow = localNRows;
-
-    if (rank != size - 1) {
-    for(int j = 0; j < localNCols; j++)
-        sendBuf[j] = localImage[j + (sendRow * localNCols)];
-    }
-
-    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
-  	             recvBuf, localNCols, MPI_FLOAT, up, tag,
-  	             MPI_COMM_WORLD, &status);
-
-    int recvRow = 0;
-
-    for(int j = 0; j < localNCols; j++) {
-      // If master rank, then don't assign buffer to localImage
-      if (rank != MASTER)
-        //localImage[j + (recvRow * localNCols)] = recvBuf[j];
-        tmp_localImage[j] = recvBuf[j];
-    }
-
-    // Sending up, receiving from down
-    if (rank != MASTER) {
-      sendRow = 1;
-      for(int j = 0; j < localNCols; j++)
-          sendBuf[j] = localImage[j + (sendRow * localNCols)];
-    }
-
-    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
-  	             recvBuf, localNCols, MPI_FLOAT, down, tag,
-  	             MPI_COMM_WORLD, &status);
-
-    if (rank == MASTER) recvRow = localNRows;
-    else recvRow = localNPaddedRows - 1;
-
-    for(int j = 0; j < localNCols; j++) {
-      // If last rank, then don't assign buffer to localImage
-      if (rank != size - 1)
-        localImage[j + (recvRow * localNCols)] = recvBuf[j];
-    }
-    */
 
   if (rank == 0) { /* TOP RANK */
    for (int j = 0; j < localNCols; j++) {
@@ -524,53 +479,6 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   // Communicate between ranks to distribute halos
 
-  /*
-  if (size > 1) {
-    // Sending down, receiving from up
-    int sendRow;
-    if (rank == MASTER) sendRow = localNRows - 1;
-    else sendRow = localNRows;
-
-    if (rank != size - 1) {
-      for(int j = 0; j < localNCols; j++)
-          sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
-    }
-
-    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
-                 recvBuf, localNCols, MPI_FLOAT, up, tag,
-                 MPI_COMM_WORLD, &status);
-
-    int recvRow = 0;
-
-    for(int j = 0; j < localNCols; j++) {
-      // If master rank, then don't assign buffer to localImage
-      if (rank != MASTER)
-        //tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
-        tmp_localImage[j] = recvBuf[j];
-    }
-
-    // Sending up, receiving from down
-    if (rank != MASTER) {
-      sendRow = 1;
-      for(int j = 0; j < localNCols; j++)
-          sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
-    }
-
-    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
-                 recvBuf, localNCols, MPI_FLOAT, down, tag,
-                 MPI_COMM_WORLD, &status);
-
-    if (rank == MASTER) recvRow = localNRows;
-    else recvRow = localNPaddedRows - 1;
-
-    for(int j = 0; j < localNCols; j++) {
-      // If last rank, then don't assign buffer to localImage
-      if (rank != size - 1)
-        tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
-    }
-
-    //printf("Process %d completed one iteration of stencil!\n", rank);
-}*/
 
 // MASTER rank
 if (rank == 0) {
@@ -578,7 +486,7 @@ if (rank == 0) {
    sendBuf[j] = tmp_localImage[((localNRows - 1) * localNCols) + j];
  }
 
- // send down, #receive up#, #send up#, receive down
+ // Send down, receive from down
  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
               recvBuf, localNCols, MPI_FLOAT, down, tag,
               MPI_COMM_WORLD, &status);
@@ -590,10 +498,10 @@ if (rank == 0) {
 // Rank = size - 1
 else if (rank == size-1) {
  for (int j = 0; j < localNCols; j++) {
-   sendBuf[j] = tmp_localImage[(0 * localNCols) + j];
+   sendBuf[j] = tmp_localImage[(1 * localNCols) + j];
  }
 
- // #send down#, receive up, send up, #receive down#
+ // Send up, receive from up
  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
               recvBuf, localNCols, MPI_FLOAT, up, tag,
               MPI_COMM_WORLD, &status);
