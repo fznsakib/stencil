@@ -163,10 +163,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows+1, localImage);
-  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows+2, localImage);
-  if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows+2, localImage);
-  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows+1, localImage);
+  // if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows+1, localImage);
+  // if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows+2, localImage);
+  // if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows+2, localImage);
+  // if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows+1, localImage);
 
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
@@ -276,10 +276,10 @@ int main(int argc, char *argv[]) {
  }
 
 
-  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
-  if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
+  // if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
+  // if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
+  // if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
@@ -590,7 +590,7 @@ if (rank == 0) {
 // Rank = size - 1
 else if (rank == size-1) {
  for (int j = 0; j < localNCols; j++) {
-   sendBuf[j] = tmp_localImage[(1 * localNCols) + j];
+   sendBuf[j] = tmp_localImage[(0 * localNCols) + j];
  }
 
  // #send down#, receive up, send up, #receive down#
