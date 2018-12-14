@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
   //if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows+1, localImage);
   //if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows+2, localImage);
   //if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows+2, localImage);
-  //if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows+1, localImage);
+  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows+1, localImage);
 
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
@@ -285,7 +285,6 @@ int main(int argc, char *argv[]) {
    }
  }
 
-}
 
   //if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
   //if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
@@ -357,6 +356,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  
 
 
 

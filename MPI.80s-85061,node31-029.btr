@@ -1,0 +1,6 @@
+
+MPI:85061 terminated with signal 11 at PC=401c61 SP=7fffffffc340.  Backtrace:
+MPI(stencil+0xbd1)[0x401c61]
+MPI(main+0x4b1)[0x403a31]
+/lib64/libc.so.6(__libc_start_main+0xfd)[0x2aaaabf73d5d]
+MPI[0x400f69]
