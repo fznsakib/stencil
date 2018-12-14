@@ -123,11 +123,7 @@ int main(int argc, char *argv[]) {
   // Local grid: 2 extra rows for halos, 1 row for first and last ranks
   // Two grids for previous and current iteration
 
-  if (rank == 0 && size == 1) {
-    localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows));
-    tmp_localImage = (float*)malloc(sizeof(float)* localNCols * (localNCols));
-  }
-  else if (rank == 0 || rank == size-1) {
+  if (rank == 0 || rank == size-1) {
     //printf("Rank: %d, local image memory allocated\n", rank);
     localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
     tmp_localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
