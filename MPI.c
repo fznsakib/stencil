@@ -90,8 +90,8 @@ int main(int argc, char *argv[]) {
   ////////////////////////////// ALLOCATE MEMORY ////////////////////////////////
 
   // Set the input image
-  float *image = _mm_malloc(sizeof(float)*nx*ny, 64);
-  float *tmp_image = _mm_malloc(sizeof(float)*nx*ny, 64);
+  float *image = malloc(sizeof(float)*nx*ny);
+  float *tmp_image = malloc(sizeof(float)*nx*ny);
 
   /////////////////////////// ALLOCATE MORE MEMORY //////////////////////////////
 
@@ -100,23 +100,17 @@ int main(int argc, char *argv[]) {
 
   if (rank == 0 || rank == size-1) {
     //printf("Rank: %d, local image memory allocated\n", rank);
-    localImage = (float*)_mm_malloc(sizeof(float) * localNCols * (localNRows + 1), 64);
-    tmp_localImage = (float*)_mm_malloc(sizeof(float) * localNCols * (localNRows + 1), 64);
+    localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
+    tmp_localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
   }
   else {
-    localImage = (float*)_mm_malloc(sizeof(float)* localNCols * (localNRows + 2), 64);
-    tmp_localImage = (float*)_mm_malloc(sizeof(float)* localNCols * (localNRows + 2), 64);
+    localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows + 2));
+    tmp_localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows + 2));
   }
 
   // Buffers for message passing
-  sendBuf = (float*)_mm_malloc(sizeof(float) * localNCols, 64);
-  recvBuf = (float*)_mm_malloc(sizeof(float) * localNCols, 64);
-
-  void *imageP = __builtin_assume_aligned(image, 16);
-  void *tmp_imageP = __builtin_assume_aligned(tmp_image, 16);
-
-  void *localImageP = __builtin_assume_aligned(image, 16);
-  void *tmp_localImageP = __builtin_assume_aligned(tmp_image, 16);
+  sendBuf = (float*)malloc(sizeof(float) * localNCols);
+  recvBuf = (float*)malloc(sizeof(float) * localNCols);
 
 
   //////////////////////////// INITIALISE LOCAL IMAGES //////////////////////////
@@ -357,7 +351,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  
+
 
 
 
@@ -374,9 +368,9 @@ int main(int argc, char *argv[]) {
 
     MPI_Finalize();
 
-    _mm_free(localImage);
-    _mm_free(tmp_localImage);
-    _mm_free(image);
+    free(localImage);
+    free(tmp_localImage);
+    free(image);
 
   if (rank == 0)
       printf("FINISH SUCCESS\n");
