@@ -43,14 +43,14 @@ int main(int argc, char *argv[]) {
   int localNRows;        /* height of this rank */
   int localNCols;        /* width of this rank */
   int localNPaddedRows;  /* height of rank with halos */
-  int remoteNRows;       /* number of columns apportioned to a remote rank */
+  //int remoteNRows;       /* number of columns apportioned to a remote rank */
 
   float *localImage;     /* local stencil grid at iteration t - 1 */
   float *tmp_localImage; /* local stencil grid at iteration t */
 
   float *sendBuf;        /* buffer to hold values to send */
   float *recvBuf;        /* buffer to hold received values */
-  float *printBuf;       /* buffer to hold values for printing */
+  //  float *printBuf;       /* buffer to hold values for printing */
 
   int firstRow;
   int lastRow;
@@ -155,10 +155,6 @@ int main(int argc, char *argv[]) {
 
   // Receive image to current rank
   if (rank != MASTER) {
-    int actualRows;
-    if (rank == size - 1) actualRows = localNRows + 1;
-    else actualRows = localNRows + 2;
-
     for (int i = 1; i < localNRows + 1; i++) {
       MPI_Recv(recvBuf, localNCols, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &status);
       for (int j = 0; j < localNCols; j++) {
@@ -292,9 +288,9 @@ int main(int argc, char *argv[]) {
   double tic = wtime();
 
   for (int t = 0; t < niters; ++t) {
-    stencil(nx, ny, localImageP, tmp_localImageP, rank, size, up, down,
+    stencil(nx, ny, localImage, tmp_localImage, rank, size, up, down,
             localNRows, localNCols, localNPaddedRows, sendBuf, recvBuf);
-    stencil(nx, ny, tmp_localImageP, localImageP, rank, size, up, down,
+    stencil(nx, ny, tmp_localImage, localImage, rank, size, up, down,
             localNRows, localNCols, localNPaddedRows, sendBuf, recvBuf);
   }
 
@@ -389,7 +385,7 @@ void stencil(const int nx, const int ny, float * restrict localImage,
   ////////////////////////////// INITIALISATION /////////////////////////////////
 
   // MPI variables
-  int flag;
+  //int flag;
   int tag = 0;
   MPI_Status status;
 
