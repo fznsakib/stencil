@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
       	  val = image[(row * nx) + j];
       	  sendBuf[j] = val;
         }
-        MPI_Send(sendBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
+        MPI_Ssend(sendBuf, localNCols, MPI_FLOAT, k, tag, MPI_COMM_WORLD);
       }
     }
   }
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
   // if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
   // if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
   // if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
-  // if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
+  //if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
@@ -251,10 +251,10 @@ int main(int argc, char *argv[]) {
 
   double toc = wtime();
 
-  if (rank == 0) output_image("rank0STENCIL.pgm", localNCols, localNRows + 1, localImage);
-  if (rank == 1) output_image("rank1STENCIL.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 2) output_image("rank2STENCIL.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 3) output_image("rank3STENCIL.pgm", localNCols, localNRows + 1, localImage);
+  //if (rank == 0) output_image("rank0STENCIL.pgm", localNCols, localNRows + 1, localImage);
+  //if (rank == 1) output_image("rank1STENCIL.pgm", localNCols, localNRows + 2, localImage);
+  //if (rank == 2) output_image("rank2STENCIL.pgm", localNCols, localNRows + 2, localImage);
+  //if (rank == 3) output_image("rank3STENCIL.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
 
@@ -448,6 +448,8 @@ void stencil(const int nx, const int ny, float * restrict localImage,
     int bottomLeftCoord = (localNPaddedRows - 1) * nx;
     int bottomMiddleCoord = 0;
     int bottomRightCoord = (nx * localNPaddedRows) - 1;
+    
+    //printf("bottomLeftCoord = %d, bottomRightCoord = %d\n", bottomLeftCoord, bottomRightCoord);
 
     #pragma GCC ivdep
     for (int j = localNPaddedRows - 1; j < localNPaddedRows; ++j) {
@@ -460,8 +462,9 @@ void stencil(const int nx, const int ny, float * restrict localImage,
       #pragma GCC ivdep
       // middle
       for (int i = 1; i < nx - 1; ++i) {
-        bottomMiddleCoord = i + (nx + j);
-
+        bottomMiddleCoord = i + (nx * j);
+	//if (i == 1)printf("j = %d, bottomMiddleCoord = %d\n",j,  bottomMiddleCoord);
+	//if (i == nx - 2) printf("j = %d, bottomMiddleCoord = %d\n", j, bottomMiddleCoord);
         tmp_localImage[bottomMiddleCoord] = (localImage[bottomMiddleCoord]       * centreWeighting) +
                                             (localImage[bottomMiddleCoord - 1]   +
                                              localImage[bottomMiddleCoord + 1]   +
