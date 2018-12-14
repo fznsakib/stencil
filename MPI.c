@@ -128,9 +128,13 @@ int main(int argc, char *argv[]) {
     localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
     tmp_localImage = (float*)malloc(sizeof(float) * localNCols * (localNRows + 1));
   }
+  else if (rank == 0 && size == 1) {
+    localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows));
+    tmp_localImage = (float*)malloc(sizeof(float)* localNCols * (localNCols));
+  }
   else {
     localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows + 2));
-    tmp_localImage = (float*)malloc(sizeof(float)* localNCols * (localNCols + 2));
+    tmp_localImage = (float*)malloc(sizeof(float)* localNCols * (localNRows + 2));
   }
 
   // Buffers for message passing
