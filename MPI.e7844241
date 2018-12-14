@@ -1,0 +1,43 @@
+
+MPI:46611 terminated with signal 7 at PC=401afe SP=7fffffffc2c0.  Backtrace:
+
+MPI:46612 terminated with signal 7 at PC=401b0a SP=7fffffffc2c0.  Backtrace:
+
+MPI:46614 terminated with signal 7 at PC=401ad7 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46610 terminated with signal 7 at PC=401b02 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46615 terminated with signal 7 at PC=401b13 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46613 terminated with signal 7 at PC=401ad7 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46616 terminated with signal 7 at PC=401ad7 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46617 terminated with signal 7 at PC=401ac6 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46618 terminated with signal 7 at PC=401ad7 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46621 terminated with signal 7 at PC=401b19 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46622 terminated with signal 7 at PC=401b13 SP=7fffffffc2c0.  Backtrace:
+
+MPI:46625 terminated with signal 7 at PC=401afe SP=7fffffffc2c0.  Backtrace:
+
+MPI:46623 terminated with signal 7 at PC=2aaaaaab4b0e SP=7fffffffb830.  Backtrace:
+
+MPI:46624 terminated with signal 7 at PC=2aaaaaab4b0e SP=7fffffffb6b0.  Backtrace:
+
+MPI:46619 terminated with signal 7 at PC=2aaaaaab4b0e SP=7fffffffb830.  Backtrace:
+
+MPI:46620 terminated with signal 7 at PC=2aaaaaab4b0e SP=7fffffffb6f0.  Backtrace:
+--------------------------------------------------------------------------
+mpirun noticed that process rank 1 with PID 46611 on node node31-034 exited on signal 7 (Bus error).
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Open RTE was unable to open the hostfile:
+    machine.file.7844241.master.cm.cluster
+Check to make sure the path and filename are correct.
+--------------------------------------------------------------------------
+[node31-034:46642] [[23623,0],0] ORTE_ERROR_LOG: Not found in file base/ras_base_allocate.c at line 222
+[node31-034:46642] [[23623,0],0] ORTE_ERROR_LOG: Not found in file base/plm_base_launch_support.c at line 99
+[node31-034:46642] [[23623,0],0] ORTE_ERROR_LOG: Not found in file plm_rsh_module.c at line 1173
