@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    output_image("rank0INIT.pgm", localNCols, localNRows, localImage);
+    output_image("rank0INIT.pgm", localNCols, localNRows + 1, localImage);
 
     // Send local image to each rank
     for (int k = 1; k < size; k++) {
@@ -493,49 +493,52 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   // Communicate between ranks to distribute halos
 
-  // Sending down, receiving from up
-  int sendRow;
-  if (rank == MASTER) sendRow = localNRows - 1;
-  else sendRow = localNRows;
+  if (size > 1) {
+    // Sending down, receiving from up
+    int sendRow;
+    if (rank == MASTER) sendRow = localNRows - 1;
+    else sendRow = localNRows;
 
-  if (rank != size - 1) {
-    for(int j = 0; j < localNCols; j++)
-        sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
-  }
+    if (rank != size - 1) {
+      for(int j = 0; j < localNCols; j++)
+          sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
+    }
 
-  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
-	             recvBuf, localNCols, MPI_FLOAT, up, tag,
-	             MPI_COMM_WORLD, &status);
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
+                 recvBuf, localNCols, MPI_FLOAT, up, tag,
+                 MPI_COMM_WORLD, &status);
 
-  int recvRow = 0;
+    int recvRow = 0;
 
-  for(int j = 0; j < localNCols; j++) {
-    // If master rank, then don't assign buffer to localImage
-    if (rank != MASTER)
-      tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
-  }
+    for(int j = 0; j < localNCols; j++) {
+      // If master rank, then don't assign buffer to localImage
+      if (rank != MASTER)
+        tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
+    }
 
-  // Sending up, receiving from down
-  if (rank != MASTER) {
-    sendRow = 1;
-    for(int j = 0; j < localNCols; j++)
-        sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
-  }
+    // Sending up, receiving from down
+    if (rank != MASTER) {
+      sendRow = 1;
+      for(int j = 0; j < localNCols; j++)
+          sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
+    }
 
-  MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
-	             recvBuf, localNCols, MPI_FLOAT, down, tag,
-	             MPI_COMM_WORLD, &status);
+    MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, up, tag,
+                 recvBuf, localNCols, MPI_FLOAT, down, tag,
+                 MPI_COMM_WORLD, &status);
 
-  if (rank == MASTER) recvRow = localNRows;
-  else recvRow = localNPaddedRows - 1;
+    if (rank == MASTER) recvRow = localNRows;
+    else recvRow = localNPaddedRows - 1;
 
-  for(int j = 0; j < localNCols; j++) {
-    // If last rank, then don't assign buffer to localImage
-    if (rank != size - 1)
-      tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
-  }
+    for(int j = 0; j < localNCols; j++) {
+      // If last rank, then don't assign buffer to localImage
+      if (rank != size - 1)
+        tmp_localImage[j + (recvRow * localNCols)] = recvBuf[j];
+    }
 
-  //printf("Process %d completed one iteration of stencil!\n", rank);
+    //printf("Process %d completed one iteration of stencil!\n", rank);
+}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
