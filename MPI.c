@@ -196,10 +196,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows+1, localImage);
-  if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows+2, localImage);
-  if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows+2, localImage);
-  if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows+1, localImage);
+  //if (rank == 0) output_image("rank0INIT.pgm", localNCols, localNRows+1, localImage);
+  //if (rank == 1) output_image("rank1INIT.pgm", localNCols, localNRows+2, localImage);
+  //if (rank == 2) output_image("rank2INIT.pgm", localNCols, localNRows+2, localImage);
+  //if (rank == 3) output_image("rank3INIT.pgm", localNCols, localNRows+1, localImage);
 
 
   ///////////////////////////// HALO DISTRIBUTION ///////////////////////////////
@@ -248,10 +248,10 @@ int main(int argc, char *argv[]) {
       localImage[j + (recvRow * localNCols)] = recvBuf[j];
   }
 
-  if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
-  if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
-  if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
+  //if (rank == 0) output_image("rank0HALO.pgm", localNCols, localNRows + 1, localImage);
+  //if (rank == 1) output_image("rank1HALO.pgm", localNCols, localNRows + 2, localImage);
+  //if (rank == 2) output_image("rank2HALO.pgm", localNCols, localNRows + 2, localImage);
+  //if (rank == 3) output_image("rank3HALO.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////// ALL PROCESS RANKS READY ////////////////////////////
 
@@ -268,6 +268,10 @@ int main(int argc, char *argv[]) {
 
   double toc = wtime();
 
+  if (rank == 0) output_image("rank0STENCIL.pgm", localNCols, localNRows + 1, localImage);
+  if (rank == 1) output_image("rank1STENCIL.pgm", localNCols, localNRows + 2, localImage);
+  if (rank == 2) output_image("rank2STENCIL.pgm", localNCols, localNRows + 2, localImage);
+  if (rank == 3) output_image("rank3STENCIL.pgm", localNCols, localNRows + 1, localImage);
 
   ////////////////////////////// STITCH UP IMAGE ////////////////////////////////
 
