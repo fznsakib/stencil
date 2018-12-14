@@ -603,7 +603,8 @@ void stencil(const int nx, const int ny, float * restrict localImage,
     //printf("Process %d completed one iteration of stencil!\n", rank);
 }*/
 
-if (rank == 0) { /* TOP RANK */
+// MASTER rank
+if (rank == 0) {
  for (int j = 0; j < localNCols; j++) {
    sendBuf[j] = tmp_localImage[((localNRows - 1) * localNCols) + j];
  }
@@ -617,7 +618,8 @@ if (rank == 0) { /* TOP RANK */
    tmp_localImage[(localNRows * localNCols) + j] = recvBuf[j];
  }
 }
-else if (rank == size-1) { /* BOTTOM RANK */
+// Rank = size - 1
+else if (rank == size-1) {
  for (int j = 0; j < localNCols; j++) {
    sendBuf[j] = tmp_localImage[(1 * localNCols) + j];
  }
