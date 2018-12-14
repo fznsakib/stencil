@@ -405,8 +405,14 @@ void stencil(const int nx, const int ny, float * restrict localImage,
 
   // Operate on different row indices depending on rank
   int firstRow = 1;
-  int lastRow = localNPaddedRows - 1;
-  if (rank == size - 1) lastRow = localNPaddedRows - 2;
+  int lastRow;
+  if (rank == 0 || rank == size-1) {
+    lastRow = localNRows;
+  }
+  else {
+    lastRow = localNRows + 1;
+  }
+
   // if (rank == MASTER || rank == size - 1) lastRow = localNRows;
   // else if (rank == size - 1) lastRow = localNRows - 1;
   // else lastRow = localNRows + 1;
@@ -493,8 +499,8 @@ void stencil(const int nx, const int ny, float * restrict localImage,
   else sendRow = localNRows;
 
   if (rank != size - 1) {
-  for(int j = 0; j < localNCols; j++)
-      sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
+    for(int j = 0; j < localNCols; j++)
+        sendBuf[j] = tmp_localImage[j + (sendRow * localNCols)];
   }
 
   MPI_Sendrecv(sendBuf, localNCols, MPI_FLOAT, down, tag,
